@@ -199,7 +199,7 @@ def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
         A_3 = [[-1, 0, 0], [0, -1, 0], [0, 0, 1]]
         bf2tp = np.matmul(A_3, A_2)
         bf2tp = np.matmul(bf2tp, A_1)
-        rectan_zenith = np.matmul(rectan_zenith, bf2tp)
+        rectan_zenith = np.matmul(rectan_zenith, bf2tp )
 
     _, longi, lati = spice.reclat(rectan_zenith)
 
