@@ -186,20 +186,12 @@ def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
 
     # Calculate moon zenith and azimuth
     state_zenith, _ = spice.spkezr("MOON", et_date, observer_frame, "NONE", observer_name)
-    rectan_zenith = np.array([state_zenith[i] for i in range(3)])
+    rectan_zenith = np.split(state_zenith, 2)[0]
     if correct_zenith_azimuth:
-        lon_rad = math.radians(longitude)
-        colat_rad = math.radians(colat)
-        slon = math.sin(lon_rad)
-        clon = math.cos(lon_rad)
-        sclat = math.sin(colat_rad)
-        cclat = math.cos(colat_rad)
-        A_1 = [[clon, slon, 0], [-slon, clon, 0], [0,0,1]]
-        A_2 = [[cclat, 0, -sclat], [0, 1, 0], [sclat, 0, cclat]]
-        A_3 = [[-1, 0, 0], [0, -1, 0], [0, 0, 1]]
-        bf2tp = np.matmul(A_3, A_2)
-        bf2tp = np.matmul(bf2tp, A_1)
-        rectan_zenith = np.matmul(rectan_zenith, bf2tp )
+        lon_rad = (longitude+180) * spice.rpd()
+        colat_rad = colat * spice.rpd()
+        bf2tp = spice.eul2m(-lon_rad,-colat_rad, 0, 3,2,3)
+        rectan_zenith = spice.mtxv(bf2tp, rectan_zenith)
 
     _, longi, lati = spice.reclat(rectan_zenith)
 
@@ -297,8 +289,9 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
     spice.boddef(observer_name, observer_id)
     moon_datas = []
     colat = 90-(latitude%90)
+    lon = longitude%180
     for utc_time in utc_times:
-        new_md = _get_moon_data(utc_time, observer_name, observer_frame, correct_zenith_azimuth, longitude%180, colat)
+        new_md = _get_moon_data(utc_time, observer_name, observer_frame, correct_zenith_azimuth, lon, colat)
         moon_datas.append(new_md)
 
     spice.kclear()
@@ -418,7 +411,7 @@ def get_moon_datas_from_extra_kernels(utc_times: List[str], kernels_path: str,
     return moon_datas
 
 def get_moon_datas(lat: float, lon: float, altitude: float, utc_times: List[str],
-                   kernels_path: str, correct_zenith_azimuth: bool = False,
+                   kernels_path: str, correct_zenith_azimuth: bool = True,
                    observer_frame: str = "ITRF93") -> List[MoonData]:
     """Calculation of needed Moon data from SPICE toolbox
 

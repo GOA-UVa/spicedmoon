@@ -2,7 +2,7 @@
 import spiced_moon as spm
 
 def main():
-    utc_times = ["2022-01-17 00:00:00"]
+    utc_times = ["2022-01-17 00:00:00", "2022-01-04 10:03:01"]
     kernels_path = "kernels"
     extra_kernels = ["EarthStations.tf", "EarthStations.bsp"]
     extra_kernels_path = "kernels"
@@ -30,15 +30,20 @@ def main():
     mde_oxf = spm.spiced_moon.get_moon_datas_from_extra_kernels(utc_times, kernels_path,
         extra_kernels, extra_kernels_path, "OXFORD", "OXFORD_LOCAL_LEVEL")
     for i, md in enumerate(moon_datas):
+        fecha = utc_times[i]
         mde = moon_datas_extra[i]
         mdi = md_izana[i]
         mdei = mde_izana[i]
         mdo = md_oxf[i]
         mdeo = mde_oxf[i]
+        print(fecha)
+        print("Valladolid")
         print(md.azimuth, md.zenith, md.mpa_deg)
         print(mde.azimuth, mde.zenith, mde.mpa_deg)
+        print("Izaña")
         print(mdi.azimuth, mdi.zenith, mdi.mpa_deg)
         print(mdei.azimuth, mdei.zenith, mdei.mpa_deg)
+        print("Oxford")
         print(mdo.azimuth, mdo.zenith, mdo.mpa_deg)
         print(mdeo.azimuth, mdeo.zenith, mdeo.mpa_deg)
 
