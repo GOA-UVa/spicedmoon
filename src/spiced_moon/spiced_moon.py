@@ -203,7 +203,7 @@ def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
                                 "NONE", observer_name)
     phase = spice.phaseq(et_date, "MOON", "SUN", observer_name, "NONE")
     phase = phase * spice.dpr()
-    
+
     et_date_2 = et_date + 1
     phase2 = spice.phaseq(et_date_2, "MOON", "SUN", observer_name, "NONE")
     phase2 = phase2 * spice.dpr()
@@ -291,7 +291,8 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
     colat = 90-(latitude%90)
     lon = longitude%180
     for utc_time in utc_times:
-        new_md = _get_moon_data(utc_time, observer_name, observer_frame, correct_zenith_azimuth, lon, colat)
+        new_md = _get_moon_data(utc_time, observer_name, observer_frame, correct_zenith_azimuth,
+            lon, colat)
         moon_datas.append(new_md)
 
     spice.kclear()
@@ -442,4 +443,3 @@ def get_moon_datas(lat: float, lon: float, altitude: float, utc_times: List[str]
     _create_earth_point_kernel(utc_times, kernels_path, lat, lon, altitude, id_code)
     return _get_moon_datas_id(utc_times, kernels_path, id_code, observer_frame,
         correct_zenith_azimuth, lat, lon)
-
