@@ -32,6 +32,9 @@ __status__ = "Development"
 CUSTOM_KERNEL_NAME = "custom.bsp"
 EARTH_ID_CODE = 399
 
+_DEFAULT_OBSERVER_NAME = "Observer"
+_DEFAULT_OBSERVER_FRAME = "Observer_LOCAL_LEVEL"
+
 @dataclass
 class MoonData:
     """
@@ -53,6 +56,10 @@ class MoonData:
         Selenographic longitude of the observer (in degrees)
     mpa_deg : float
         Moon phase angle (in degrees)
+    azimuth : float
+        Azimuth angle (in degrees)
+    zenith : float
+        Zenith angle (in degrees)
 
     """
     dist_sun_moon_au: float
@@ -64,7 +71,6 @@ class MoonData:
     mpa_deg: float
     azimuth: float
     zenith: float
-    elevation: float
 
 def _calculate_states(ets: np.ndarray, pos_iau_earth: np.ndarray, delta_t: float,
                       source_frame: str, target_frame: str) -> np.ndarray:
@@ -155,7 +161,10 @@ class _EarthLocation():
                                      eq_rad, flattening)
         self.states = _calculate_states(ets, pos_iau_earth, delta_t, source_frame, target_frame)
 
-def _get_moon_data(utc_time: str, observer_name: str = "Observer") -> MoonData:
+def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
+                   observer_frame: str = _DEFAULT_OBSERVER_FRAME,
+                   correct_zenith_azimuth: bool = False, longitude: float = 0,
+                   colat: float = 0) -> MoonData:
     """Calculation of the moon data for the given utc_time for the loaded observer
 
     Parameters
@@ -175,11 +184,31 @@ def _get_moon_data(utc_time: str, observer_name: str = "Observer") -> MoonData:
     m_pol_rad = radios_luna[2] # 1736 # Moon polar radius
     flattening = (m_eq_rad-m_pol_rad)/m_eq_rad
 
+    # Calculate moon zenith and azimuth
+    state_zenith, _ = spice.spkezr("MOON", et_date, observer_frame, "NONE", observer_name)
+    rectan_zenith = np.split(state_zenith, 2)[0]
+    if correct_zenith_azimuth:
+        lon_rad = (longitude+180) * spice.rpd()
+        colat_rad = colat * spice.rpd()
+        bf2tp = spice.eul2m(-lon_rad,-colat_rad, 0, 3,2,3)
+        rectan_zenith = spice.mtxv(bf2tp, rectan_zenith)
+
+    _, longi, lati = spice.reclat(rectan_zenith)
+
+    zenith = 90.0 - lati * spice.dpr()
+    azimuth = 180 - longi * spice.dpr()
+
     # Calculate moon phase angle
     spoint, _, _ = spice.subpnt("INTERCEPT/ELLIPSOID", "MOON", et_date, 'MOON_ME',
                                 "NONE", observer_name)
     phase = spice.phaseq(et_date, "MOON", "SUN", observer_name, "NONE")
     phase = phase * spice.dpr()
+
+    et_date_2 = et_date + 1
+    phase2 = spice.phaseq(et_date_2, "MOON", "SUN", observer_name, "NONE")
+    phase2 = phase2 * spice.dpr()
+    if phase2 < phase:
+        phase = -phase
 
     # Calculate selenographic coordinates of the observer
     lon_obs, lat_obs, _ = spice.recpgr("MOON", spoint, m_eq_rad, flattening)
@@ -219,11 +248,12 @@ def _get_moon_data(utc_time: str, observer_name: str = "Observer") -> MoonData:
         lon_sun_rad += limit_lon_rad*2
 
     moon_data = MoonData(dist_sun_moon_au, dist_sun_moon_km, dist_obs_moon, lon_sun_rad,
-                         lat_obs, lon_obs, phase)
+                         lat_obs, lon_obs, phase, azimuth, zenith)
     return moon_data
 
 def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
-                       observer_id: int) -> List[MoonData]:
+                       observer_id: int, observer_frame: str, correct_zenith_azimuth: bool = False,
+                       latitude: float = 0, longitude: float = 0) -> List[MoonData]:
     """Calculation of needed MoonDatas from SPICE toolbox
 
     Moon phase angle, selenographic coordinates and distance from observer point to moon.
@@ -237,6 +267,10 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
         Path where the SPICE kernels are stored
     observer_id : int
         Observer's body ID
+    latitude : float
+        Geographic latitude of the observer point
+    longitude : float
+        Geographic longitude of the observer point
 
     Returns
     -------
@@ -251,12 +285,15 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
         k_path = os.path.join(kernels_path, kernel)
         spice.furnsh(k_path)
 
-    observer_name = "Observer"
+    observer_name = _DEFAULT_OBSERVER_NAME
     spice.boddef(observer_name, observer_id)
     moon_datas = []
-
+    colat = 90-(latitude%90)
+    lon = longitude%180
     for utc_time in utc_times:
-        moon_datas.append(_get_moon_data(utc_time, observer_name))
+        new_md = _get_moon_data(utc_time, observer_name, observer_frame, correct_zenith_azimuth,
+            lon, colat)
+        moon_datas.append(new_md)
 
     spice.kclear()
 
@@ -333,7 +370,7 @@ def _remove_custom_kernel_file(kernels_path: str) -> None:
 
 def get_moon_datas_from_extra_kernels(utc_times: List[str], kernels_path: str,
                                       extra_kernels: List[str], extra_kernels_path: str,
-                                      observer_name: str) -> List[MoonData]:
+                                      observer_name: str, observer_frame: str) -> List[MoonData]:
     """Calculation of needed Moon data from SPICE toolbox
 
     Moon phase angle, selenographic coordinates and distance from observer point to moon.
@@ -368,14 +405,15 @@ def get_moon_datas_from_extra_kernels(utc_times: List[str], kernels_path: str,
 
     moon_datas = []
     for utc_time in utc_times:
-        moon_datas.append(_get_moon_data(utc_time, observer_name))
+        moon_datas.append(_get_moon_data(utc_time, observer_name, observer_frame))
 
     spice.kclear()
 
     return moon_datas
 
 def get_moon_datas(lat: float, lon: float, altitude: float, utc_times: List[str],
-                   kernels_path: str) -> List[MoonData]:
+                   kernels_path: str, correct_zenith_azimuth: bool = True,
+                   observer_frame: str = "ITRF93") -> List[MoonData]:
     """Calculation of needed Moon data from SPICE toolbox
 
     Moon phase angle, selenographic coordinates and distance from observer point to moon.
@@ -393,6 +431,8 @@ def get_moon_datas(lat: float, lon: float, altitude: float, utc_times: List[str]
         Times at which the lunar data will be calculated, in a valid UTC DateTime format
     kernels_path : str
         Path where the SPICE kernels are stored
+    observer_frame : str
+        Observer frame that will be used in the calculations of the azimuth and zenith.
     Returns
     -------
     list of MoonData
@@ -401,5 +441,5 @@ def get_moon_datas(lat: float, lon: float, altitude: float, utc_times: List[str]
     id_code = 399100
     _remove_custom_kernel_file(kernels_path)
     _create_earth_point_kernel(utc_times, kernels_path, lat, lon, altitude, id_code)
-    return _get_moon_datas_id(utc_times, kernels_path, id_code)
-
+    return _get_moon_datas_id(utc_times, kernels_path, id_code, observer_frame,
+        correct_zenith_azimuth, lat, lon)
