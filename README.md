@@ -1,4 +1,4 @@
-# spiced_moon
+# spicedmoon
 
 ![Version 0.1.0](https://img.shields.io/badge/version-0.1.0-informational)
 
@@ -28,7 +28,7 @@ and using data from extra kernels for the observer body
 ## Installation
 
 ```sh
-pip install spiced_moon
+pip install spicedmoon
 ```
 
 ### Kernels

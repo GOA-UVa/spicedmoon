@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import spiced_moon as spm
+import spicedmoon as spm
 
 def main():
     utc_times = ["2022-01-17 00:00:00", "2022-01-04 10:03:01"]
@@ -18,16 +18,16 @@ def main():
     alt = 705
     frame = "ITRF93"
     correction = True
-    moon_datas = spm.spiced_moon.get_moon_datas(lat, lon, alt, utc_times, kernels_path, correction, frame)
-    moon_datas_extra = spm.spiced_moon.get_moon_datas_from_extra_kernels(utc_times, kernels_path,
+    moon_datas = spm.spicedmoon.get_moon_datas(lat, lon, alt, utc_times, kernels_path, correction, frame)
+    moon_datas_extra = spm.spicedmoon.get_moon_datas_from_extra_kernels(utc_times, kernels_path,
         extra_kernels, extra_kernels_path, observer_name, observer_frame)
 
-    md_izana = spm.spiced_moon.get_moon_datas(iz_lat, iz_lon, 2400, utc_times, kernels_path, correction, frame)
-    mde_izana = spm.spiced_moon.get_moon_datas_from_extra_kernels(utc_times, kernels_path,
+    md_izana = spm.spicedmoon.get_moon_datas(iz_lat, iz_lon, 2400, utc_times, kernels_path, correction, frame)
+    mde_izana = spm.spicedmoon.get_moon_datas_from_extra_kernels(utc_times, kernels_path,
         extra_kernels, extra_kernels_path, "IZANA", "IZANA_LOCAL_LEVEL")
 
-    md_oxf = spm.spiced_moon.get_moon_datas(oxf_lat, oxf_lon, oxf_alt, utc_times, kernels_path, correction, frame)
-    mde_oxf = spm.spiced_moon.get_moon_datas_from_extra_kernels(utc_times, kernels_path,
+    md_oxf = spm.spicedmoon.get_moon_datas(oxf_lat, oxf_lon, oxf_alt, utc_times, kernels_path, correction, frame)
+    mde_oxf = spm.spicedmoon.get_moon_datas_from_extra_kernels(utc_times, kernels_path,
         extra_kernels, extra_kernels_path, "OXFORD", "OXFORD_LOCAL_LEVEL")
     for i, md in enumerate(moon_datas):
         fecha = utc_times[i]
