@@ -18,8 +18,8 @@ def datetime_range(start, end, delta):
         yield current
         current += delta
 
-def print_result(az, ze, phase):
-    print("{},{},{}".format(az, ze, phase))
+def print_result(az, ze):
+    print("{},{}".format(az, ze))
 
 def print_pylunar(dts_str, lat, lon, alt):
     mi = pylunar.MoonInfo(_decdeg2dms(lat), _decdeg2dms(lon))
@@ -28,15 +28,12 @@ def print_pylunar(dts_str, lat, lon, alt):
         mi.update(dt)
         az = mi.azimuth()
         ze = 90 - mi.altitude()
-        ph = mi.libration_phase_angle()
-        if ph > 180:
-            ph = 360-ph
-        print_result(az, ze, ph)
+        print_result(az, ze)
 
 def print_spicedmoon(dts_str, lat, lon, alt):
     mds = spm.get_moon_datas(lat, lon, alt, dts_str, "./kernels")
     for md in mds:
-        print_result(md.azimuth, md.zenith, md.mpa_deg)
+        print_result(md.azimuth, md.zenith)
 
 def print_ephem(dts_str, lat, lon, alt):
     obs = ephem.Observer()
@@ -49,10 +46,7 @@ def print_ephem(dts_str, lat, lon, alt):
         m.compute(obs)
         az = math.degrees(m.az)
         ze = 90 - math.degrees(m.alt)
-        ph = math.degrees(m.moon_phase)
-        if ph > 180:
-            ph = 360-ph
-        print_result(az, ze, ph)
+        print_result(az, ze)
 
 
 def main():
@@ -63,7 +57,7 @@ def main():
     lat = 28.309283
     lon = -16.499143
     alt = 2400
-    print_spicedmoon(dts, lat, lon, alt)
+    print_pylunar(dts, lat, lon, alt)
 
 if __name__ == "__main__":
     main()
