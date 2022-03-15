@@ -2,3 +2,4 @@
 dist
 kernels
 *egg-info
+*temp*
