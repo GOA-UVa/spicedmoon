@@ -35,6 +35,11 @@ def print_spicedmoon(dts_str, lat, lon, alt):
     for md in mds:
         print_result(md.azimuth, md.zenith)
 
+def print_spicedmoon_obs(dts_str, lat, lon, alt):
+    mds = spm.get_moon_datas(lat, lon, alt, dts_str, "./kernels", earth_as_zenith_observer=False)
+    for md in mds:
+        print_result(md.azimuth, md.zenith)
+
 def print_ephem(dts_str, lat, lon, alt):
     obs = ephem.Observer()
     obs.lat = math.radians(lat)
@@ -51,13 +56,13 @@ def print_ephem(dts_str, lat, lon, alt):
 
 def main():
     dts = [dt.strftime('%Y-%m-%d %H:%M:%S') for dt in 
-       datetime_range(datetime(2022, 1, 17, 0), datetime(2022, 1, 17, 23, 31), 
+       datetime_range(datetime(2022, 4, 18, 0), datetime(2022, 4, 18, 23, 31), 
        timedelta(minutes=30))]
     # izana
     lat = 28.309283
     lon = -16.499143
     alt = 2400
-    print_pylunar(dts, lat, lon, alt)
+    print_spicedmoon(dts, lat, lon, alt)
 
 if __name__ == "__main__":
     main()
