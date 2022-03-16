@@ -47,7 +47,7 @@ def main():
     moon_datas_extra = spm.spicedmoon.get_moon_datas_from_extra_kernels(utc_times, kernels_path,
         extra_kernels, extra_kernels_path, observer_name, observer_frame, False)
 
-    md_izana = spm.spicedmoon.get_moon_datas(iz_lat, iz_lon, 2400, utc_times, kernels_path, correction, frame, False)
+    md_izana = spm.spicedmoon.get_moon_datas(iz_lat, iz_lon, 2373, utc_times, kernels_path, correction, frame, False)
     mde_izana = spm.spicedmoon.get_moon_datas_from_extra_kernels(utc_times, kernels_path,
         extra_kernels, extra_kernels_path, "IZANA", "IZANA_LOCAL_LEVEL", False)
 
