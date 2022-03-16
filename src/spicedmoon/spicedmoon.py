@@ -274,7 +274,7 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
                        observer_id: int, observer_frame: str,
                        correct_zenith_azimuth: bool = False,
                        latitude: float = 0, longitude: float = 0,
-                       earth_as_zenith_observer: bool = True) -> List[MoonData]:
+                       earth_as_zenith_observer: bool = False) -> List[MoonData]:
     """Calculation of needed MoonDatas from SPICE toolbox
 
     Moon phase angle, selenographic coordinates and distance from observer point to moon.
@@ -299,7 +299,7 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
         Geographic longitude of the observer point.
     earth_as_zenith_observer : bool
         If True the Earth will be used as the observer for the zenith and azimuth calculation.
-        Otherwise it will be the actual observer. By default is True.
+        Otherwise it will be the actual observer. By default is False.
     Returns
     -------
     list of MoonData
@@ -403,7 +403,7 @@ def _remove_custom_kernel_file(kernels_path: str) -> None:
 def get_moon_datas_from_extra_kernels(utc_times: List[str], kernels_path: str,
                                       extra_kernels: List[str], extra_kernels_path: str,
                                       observer_name: str, observer_frame: str,
-                                      earth_as_zenith_observer: bool = True
+                                      earth_as_zenith_observer: bool = False
                                       ) -> List[MoonData]:
     """Calculation of needed Moon data from SPICE toolbox
 
@@ -426,7 +426,7 @@ def get_moon_datas_from_extra_kernels(utc_times: List[str], kernels_path: str,
         Observer frame that will be used in the calculations of the azimuth and zenith.
     earth_as_zenith_observer : bool
         If True the Earth will be used as the observer for the zenith and azimuth calculation.
-        Otherwise it will be the actual observer. By default is True.
+        Otherwise it will be the actual observer. By default is False.
     Returns
     -------
     list of MoonData
@@ -458,7 +458,7 @@ def get_moon_datas_from_extra_kernels(utc_times: List[str], kernels_path: str,
 def get_moon_datas(lat: float, lon: float, altitude: float, utc_times: List[str],
                    kernels_path: str, correct_zenith_azimuth: bool = True,
                    observer_frame: str = "ITRF93",
-                   earth_as_zenith_observer: bool = True
+                   earth_as_zenith_observer: bool = False
                    ) -> List[MoonData]:
     """Calculation of needed Moon data from SPICE toolbox
 
@@ -481,7 +481,7 @@ def get_moon_datas(lat: float, lon: float, altitude: float, utc_times: List[str]
         Observer frame that will be used in the calculations of the azimuth and zenith.
     earth_as_zenith_observer : bool
         If True the Earth will be used as the observer for the zenith and azimuth calculation.
-        Otherwise it will be the actual observer. By default is True.
+        Otherwise it will be the actual observer. By default is False.
     Returns
     -------
     list of MoonData

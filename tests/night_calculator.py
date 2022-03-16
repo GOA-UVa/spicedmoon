@@ -30,8 +30,8 @@ def print_pylunar(dts_str, lat, lon, alt):
         ze = 90 - mi.altitude()
         print_result(az, ze)
 
-def print_spicedmoon(dts_str, lat, lon, alt):
-    mds = spm.get_moon_datas(lat, lon, alt, dts_str, "./kernels")
+def print_spicedmoon_earth(dts_str, lat, lon, alt):
+    mds = spm.get_moon_datas(lat, lon, alt, dts_str, "./kernels", earth_as_zenith_observer=True)
     for md in mds:
         print_result(md.azimuth, md.zenith)
 
@@ -62,7 +62,7 @@ def main():
     lat = 28.309283
     lon = -16.499143
     alt = 2400
-    print_spicedmoon(dts, lat, lon, alt)
+    print_spicedmoon_earth(dts, lat, lon, alt)
 
 if __name__ == "__main__":
     main()
