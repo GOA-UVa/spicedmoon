@@ -48,7 +48,7 @@ That directory must contain the following kernels:
 ## Usage
 
 If one wanted to obtain the lunar azimuth and zenith at Izaña Atmospheric Observatory, on
-2022-01-17 at 00:00:00, we could use the following snippet of code:
+2022-01-17 at 00:00:00 (UTC), we could use the following snippet of code:
 
 ```python
 import spicedmoon as spm
