@@ -1,6 +1,6 @@
 # spicedmoon
 
-![Version 0.1.2](https://img.shields.io/badge/version-0.1.2-informational)
+![Version 0.1.3](https://img.shields.io/badge/version-0.1.3-informational)
 
 Calculation of lunar data using NASA’s SPICE toolbox.
 
@@ -22,7 +22,8 @@ and using data from extra kernels for the observer body
 
 ## Requirements
 
-- numpy>=1.22.2
+- python>=3.7
+- numpy>=1.21.5
 - spiceypy>=5.0.0
 
 ## Installation
@@ -48,7 +49,7 @@ That directory must contain the following kernels:
 ## Usage
 
 If one wanted to obtain the lunar azimuth and zenith at Izaña Atmospheric Observatory, on
-2022-01-17 at 00:00:00, we could use the following snippet of code:
+2022-01-17 at 00:00:00 (UTC), we could use the following snippet of code:
 
 ```python
 import spicedmoon as spm
