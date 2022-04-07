@@ -1,2 +1,2 @@
-numpy>=1.22.2
+numpy>=1.21.5
 spiceypy>=5.0.0
