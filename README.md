@@ -1,6 +1,7 @@
 # spicedmoon
 
 ![Version 1.0.0](https://img.shields.io/badge/version-1.0.0-informational)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
 Calculation of lunar data using NASA’s SPICE toolbox.
 
