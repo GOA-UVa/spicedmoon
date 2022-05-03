@@ -13,7 +13,8 @@ It exports the following functions:
 from dataclasses import dataclass
 import os
 import math
-from typing import List
+from typing import List, Union
+from datetime import datetime, timezone
 
 """___Third-Party Modules___"""
 import numpy as np
@@ -400,7 +401,31 @@ def _remove_custom_kernel_file(kernels_path: str) -> None:
     if os.path.exists(custom_kernel_path):
         os.remove(custom_kernel_path)
 
-def get_moon_datas_from_extra_kernels(utc_times: List[str], kernels_path: str,
+def _dt_to_str(dts: Union[List[datetime], List[str]]) -> List[str]:
+    """Convert a list of datetimes into a list of string dates in a valid format.
+    
+    Parameters
+    ----------
+    dts: list of datetimes | list of str
+        List of datetimes that will be converted to utc_times. They must be timezone aware.
+        A list of already converted strings can be given instead, and it will be returned without
+        change.
+    
+    Returns
+    -------
+    utc_times: list of str
+        List of the datetimes in a valid string format for SPICE.
+    """
+    utc_times = []
+    for dt in dts:
+        if isinstance(dt, datetime):
+            dt_utc = dt.astimezone(timezone.utc)
+            utc_times.append(dt_utc.strftime("%Y-%m-%d %H:%M:%S"))
+        else:
+            utc_times.append(dt)
+    return utc_times
+
+def get_moon_datas_from_extra_kernels(times: Union[List[str], List[datetime]], kernels_path: str,
                                       extra_kernels: List[str], extra_kernels_path: str,
                                       observer_name: str, observer_frame: str,
                                       earth_as_zenith_observer: bool = False
@@ -412,8 +437,12 @@ def get_moon_datas_from_extra_kernels(utc_times: List[str], kernels_path: str,
 
     Parameters
     ----------
-    utc_times : str
-        Times at which the lunar data will be calculated, in a valid UTC DateTime format
+    times : list of str | list of datetime
+        Times at which the lunar data will be calculated.
+        If they are str, they must be in a valid UTC format allowed by SPICE, such as
+        %Y-%m-%d %H:%M:%S.
+        If they are datetimes they must be timezone aware, or they will be understood
+        as computer local time.
     kernels_path : str
         Path where the SPICE kernels are stored
     extra_kernels : list of str
@@ -447,6 +476,7 @@ def get_moon_datas_from_extra_kernels(utc_times: List[str], kernels_path: str,
     else:
         zenith_observer = observer_name
     moon_datas = []
+    utc_times = _dt_to_str(times)
     for utc_time in utc_times:
         moon_datas.append(_get_moon_data(utc_time, observer_name, observer_frame,
             zenith_observer))
@@ -455,7 +485,8 @@ def get_moon_datas_from_extra_kernels(utc_times: List[str], kernels_path: str,
 
     return moon_datas
 
-def get_moon_datas(lat: float, lon: float, altitude: float, utc_times: List[str],
+def get_moon_datas(lat: float, lon: float, altitude: float,
+                   times: Union[List[str], List[datetime]],
                    kernels_path: str, correct_zenith_azimuth: bool = True,
                    observer_frame: str = "ITRF93",
                    earth_as_zenith_observer: bool = False
@@ -473,8 +504,12 @@ def get_moon_datas(lat: float, lon: float, altitude: float, utc_times: List[str]
         Geographic longitude (in degrees) of the location.
     altitude : float
         Altitude over the sea level in meters.
-    utc_times : str
-        Times at which the lunar data will be calculated, in a valid UTC DateTime format
+    times : list of str | list of datetime
+        Times at which the lunar data will be calculated.
+        If they are str, they must be in a valid UTC format allowed by SPICE, such as
+        %Y-%m-%d %H:%M:%S.
+        If they are datetimes they must be timezone aware, or they will be understood
+        as computer local time.
     kernels_path : str
         Path where the SPICE kernels are stored
     observer_frame : str
@@ -488,6 +523,7 @@ def get_moon_datas(lat: float, lon: float, altitude: float, utc_times: List[str]
         Moon data obtained from SPICE toolbox
     """
     id_code = 399100
+    utc_times = _dt_to_str(times)
     _remove_custom_kernel_file(kernels_path)
     _create_earth_point_kernel(utc_times, kernels_path, lat, lon, altitude, id_code)
     return _get_moon_datas_id(utc_times, kernels_path, id_code, observer_frame,
