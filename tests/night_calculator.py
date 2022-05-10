@@ -56,7 +56,7 @@ def print_ephem(dts_str, lat, lon, alt):
 
 def main():
     dts = [dt.strftime('%Y-%m-%d %H:%M:%S') for dt in 
-       datetime_range(datetime(2022, 4, 18, 0), datetime(2022, 4, 18, 23, 31), 
+       datetime_range(datetime(2022, 4, 22, 0), datetime(2022, 4, 22, 6), 
        timedelta(minutes=30))]
     # izana
     lat = 28.309283

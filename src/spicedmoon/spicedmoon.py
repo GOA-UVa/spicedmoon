@@ -15,6 +15,7 @@ import os
 import math
 from typing import List, Union
 from datetime import datetime, timezone
+import time
 
 """___Third-Party Modules___"""
 import numpy as np
@@ -74,6 +75,25 @@ class MoonData:
     mpa_deg: float
     azimuth: float
     zenith: float
+
+def _furnsh_safer(k_path: str):
+    """
+    Perfroms the SPICE furnsh_c function, but in case that it fails it tries again after a small time
+    interval.
+
+    Furnsh has produced an error once, very rarely, but it can be solved trying again, so this is what this
+    function solves.
+
+    Parameters
+    ----------
+    k_path : str
+        Path of the kernel to load.
+    """
+    try:
+        spice.furnsh(k_path)
+    except:
+        time.sleep(2)
+        spice.furnsh(k_path)
 
 def _calculate_states(ets: np.ndarray, pos_iau_earth: np.ndarray, delta_t: float,
                       source_frame: str, target_frame: str) -> np.ndarray:
@@ -312,7 +332,7 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
 
     for kernel in kernels:
         k_path = os.path.join(kernels_path, kernel)
-        spice.furnsh(k_path)
+        _furnsh_safer(k_path)
 
     observer_name = _DEFAULT_OBSERVER_NAME
     spice.boddef(observer_name, observer_id)
@@ -355,7 +375,7 @@ def _create_earth_point_kernel(utc_times: List[str], kernels_path: str, lat: int
                "de421.bsp", "earth_latest_high_prec.bpc", "earth_070425_370426_predict.bpc"]
     for kernel in kernels:
         k_path = os.path.join(kernels_path, kernel)
-        spice.furnsh(k_path)
+        _furnsh_safer(k_path)
 
     polynomial_degree = 5
     # Degree of the lagrange polynomials that will be used to interpolate the states
@@ -466,10 +486,10 @@ def get_moon_datas_from_extra_kernels(times: Union[List[str], List[datetime]], k
                "earth_latest_high_prec.bpc", "earth_070425_370426_predict.bpc"]
     for kernel in base_kernels:
         k_path = os.path.join(kernels_path, kernel)
-        spice.furnsh(k_path)
+        _furnsh_safer(k_path)
     for kernel in extra_kernels:
         k_path = os.path.join(extra_kernels_path, kernel)
-        spice.furnsh(k_path)
+        _furnsh_safer(k_path)
 
     if earth_as_zenith_observer:
         zenith_observer = "EARTH"
