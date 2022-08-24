@@ -544,6 +544,8 @@ def get_moon_datas(lat: float, lon: float, altitude: float,
     """
     id_code = 399100
     utc_times = _dt_to_str(times)
+    if(len(utc_times) == 0):
+        return []
     _remove_custom_kernel_file(kernels_path)
     _create_earth_point_kernel(utc_times, kernels_path, lat, lon, altitude, id_code)
     return _get_moon_datas_id(utc_times, kernels_path, id_code, observer_frame,
