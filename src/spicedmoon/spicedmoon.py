@@ -293,6 +293,7 @@ def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
 
 def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
                        observer_id: int, observer_frame: str,
+                       custom_kernel_dir: str,
                        correct_zenith_azimuth: bool = False,
                        latitude: float = 0, longitude: float = 0,
                        earth_as_zenith_observer: bool = False) -> List[MoonData]:
@@ -311,6 +312,8 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
         Observer's body ID
     observer_frame : str
         Observer frame that will be used in the calculations of the azimuth and zenith.
+    custom_kernel_dir: str
+        Path where the writable kernel custom.bsp will be stored.
     correct_zenith_azimuth : bool
         In case that it's calculated without using the extra kernels, the coordinates should be
         corrected rotating them into the correct location.
@@ -327,12 +330,14 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
         Moon data obtained from SPICE toolbox
     """
     kernels = ["moon_pa_de421_1900-2050.bpc", "moon_080317.tf",
-               "pck00010.tpc", "naif0011.tls", "de421.bsp", "custom.bsp", "earth_assoc_itrf93.tf",
+               "pck00010.tpc", "naif0011.tls", "de421.bsp", "earth_assoc_itrf93.tf",
                "earth_latest_high_prec.bpc", "earth_070425_370426_predict.bpc"]
 
     for kernel in kernels:
         k_path = os.path.join(kernels_path, kernel)
         _furnsh_safer(k_path)
+    custom_kernel_path = os.path.join(custom_kernel_dir, CUSTOM_KERNEL_NAME)
+    _furnsh_safer(custom_kernel_path)
 
     observer_name = _DEFAULT_OBSERVER_NAME
     spice.boddef(observer_name, observer_id)
@@ -353,7 +358,7 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
     return moon_datas
 
 def _create_earth_point_kernel(utc_times: List[str], kernels_path: str, lat: int, lon: int,
-                               altitude: float, id_code: int) -> None:
+                               altitude: float, id_code: int, custom_kernel_dir: str) -> None:
     """Creates a SPK custom kernel file containing the data of a point on Earth's surface
 
     Parameters
@@ -370,6 +375,8 @@ def _create_earth_point_kernel(utc_times: List[str], kernels_path: str, lat: int
         Altitude over the sea level in meters.
     id_code : int
         ID code that will be associated with the point on Earth's surface
+    custom_kernel_dir: str
+        Path where the writable custom kernel custom.bsp will be stored.
     """
     kernels = ["pck00010.tpc", "naif0011.tls", "earth_assoc_itrf93.tf",
                "de421.bsp", "earth_latest_high_prec.bpc", "earth_070425_370426_predict.bpc"]
@@ -398,7 +405,7 @@ def _create_earth_point_kernel(utc_times: List[str], kernels_path: str, lat: int
     target_frame = source_frame = 'ITRF93'
     obs = _EarthLocation(id_code, lat, lon, altitude, ets, delta_t, source_frame, target_frame)
 
-    custom_kernel_path = os.path.join(kernels_path, CUSTOM_KERNEL_NAME)
+    custom_kernel_path = os.path.join(custom_kernel_dir, CUSTOM_KERNEL_NAME)
     handle = spice.spkopn(custom_kernel_path, 'SPK_file', 0)
 
     center = EARTH_ID_CODE
@@ -509,7 +516,7 @@ def get_moon_datas(lat: float, lon: float, altitude: float,
                    times: Union[List[str], List[datetime]],
                    kernels_path: str, correct_zenith_azimuth: bool = True,
                    observer_frame: str = "ITRF93",
-                   earth_as_zenith_observer: bool = False
+                   earth_as_zenith_observer: bool = False, custom_kernel_path: str = None,
                    ) -> List[MoonData]:
     """Calculation of needed Moon data from SPICE toolbox
 
@@ -537,16 +544,21 @@ def get_moon_datas(lat: float, lon: float, altitude: float,
     earth_as_zenith_observer : bool
         If True the Earth will be used as the observer for the zenith and azimuth calculation.
         Otherwise it will be the actual observer. By default is False.
+    custom_kernel_path: str
+        Path of the kernel custom.bsp that will be edited by the library, not only read.
+        If none, it will be the same as kernels_path.
     Returns
     -------
     list of MoonData
         Moon data obtained from SPICE toolbox
     """
+    if custom_kernel_path == None:
+        custom_kernel_path = kernels_path
     id_code = 399100
     utc_times = _dt_to_str(times)
     if(len(utc_times) == 0):
         return []
-    _remove_custom_kernel_file(kernels_path)
-    _create_earth_point_kernel(utc_times, kernels_path, lat, lon, altitude, id_code)
-    return _get_moon_datas_id(utc_times, kernels_path, id_code, observer_frame,
+    _remove_custom_kernel_file(custom_kernel_path)
+    _create_earth_point_kernel(utc_times, kernels_path, lat, lon, altitude, id_code, custom_kernel_path)
+    return _get_moon_datas_id(utc_times, kernels_path, id_code, observer_frame, custom_kernel_path,
         correct_zenith_azimuth, lat, lon, earth_as_zenith_observer)
