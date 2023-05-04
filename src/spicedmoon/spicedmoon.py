@@ -269,17 +269,21 @@ def _get_sun_moon_data(utc_time: str):
     dist_sun_moon_au = spice.convrt(dist_sun_moon_km, "KM", "AU")
 
 
-    limit_lat_rad = math.pi/2
-    if lat_sun_rad > limit_lat_rad:
-        lat_sun_rad -= limit_lat_rad
-    elif lat_sun_rad < -limit_lat_rad:
-        lat_sun_rad += limit_lat_rad
 
+
+    limit_lat_rad = math.pi/2
     limit_lon_rad = math.pi
-    if lon_sun_rad > limit_lon_rad:
+    if lat_sun_rad > limit_lat_rad:
+        lat_sun_rad = limit_lat_rad + (limit_lat_rad-lat_sun_rad)
         lon_sun_rad -= limit_lon_rad
-    elif lon_sun_rad < -limit_lon_rad:
+    elif lat_sun_rad < -limit_lat_rad:
+        lat_sun_rad = -limit_lat_rad - (limit_lat_rad+lat_sun_rad)
         lon_sun_rad += limit_lon_rad
+
+    while lon_sun_rad > limit_lon_rad:
+        lon_sun_rad -= limit_lon_rad*2
+    while lon_sun_rad < -limit_lon_rad:
+        lon_sun_rad += limit_lon_rad*2
 
     return MoonSunData(lon_sun_rad, lat_sun_rad, dist_sun_moon_km, dist_sun_moon_au)
 
@@ -366,16 +370,18 @@ def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
     dist_sun_moon_au = smd.dist_sun_moon_au
 
     limit_lat = 90
-    if lat_obs > limit_lat:
-        lat_obs -= limit_lat
-    elif lat_obs < -limit_lat:
-        lat_obs += limit_lat
-
     limit_lon = 180
-    if lon_obs > limit_lon:
+    if lat_obs > limit_lat:
+        lat_obs = limit_lat + (limit_lat-lat_obs)
         lon_obs -= limit_lon
-    elif lon_obs < -limit_lon:
+    elif lat_obs < -limit_lat:
+        lat_obs = -limit_lat - (limit_lat+lat_obs)
         lon_obs += limit_lon
+
+    while lon_obs > limit_lon:
+        lon_obs -= limit_lon*2
+    while lon_obs < -limit_lon:
+        lon_obs += limit_lon*2
 
     moon_data = MoonData(dist_sun_moon_au, dist_sun_moon_km, dist_obs_moon, lon_sun_rad,
                          lat_obs, lon_obs, phase, azimuth, zenith)
