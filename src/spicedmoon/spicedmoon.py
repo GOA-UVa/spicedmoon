@@ -7,6 +7,7 @@ It exports the following functions:
     * get_moon_datas - Calculates needed MoonData from SPICE toolbox
     * get_moon_datas_from_extra_kernels - Calculates needed MoonData from SPICE toolbox
         and using data from extra kernels for the observer body
+    * get_sun_moon_datas - Calculates solar selenographic coordinates.
 """
 
 """___Built-In Modules___"""
@@ -75,6 +76,26 @@ class MoonData:
     mpa_deg: float
     azimuth: float
     zenith: float
+
+@dataclass
+class MoonSunData:
+    """Dataclass with information of the relation between the Sun and the Moon.
+
+    Attributes
+    ----------
+    lon_sun_rad: float
+        Selenographic longitude of the Sun in radians
+    lat_sun_rad: float
+        Selenographic latitude of the Sun in radians
+    dist_sun_moon_km: float
+        Distance between the Sun and the Moon in km
+    dist_sun_moon_au: float
+        Distance between the Sun and the Moon in AU
+    """
+    lon_sun_rad: float
+    lat_sun_rad: float
+    dist_sun_moon_km: float
+    dist_sun_moon_au: float
 
 def _furnsh_safer(k_path: str):
     """
@@ -184,6 +205,38 @@ class _EarthLocation():
                                      eq_rad, flattening)
         self.states = _calculate_states(ets, pos_iau_earth, delta_t, source_frame, target_frame)
 
+
+def _get_sun_moon_data(utc_time: str):
+    et_date = spice.str2et(utc_time)
+    m_eq_rad = 1738.1
+    m_pol_rad = 1736
+    flattening = (m_eq_rad-m_pol_rad)/m_eq_rad
+    # Calculate selenographic longitude of sun
+    sun_spoint, _, _ = spice.subslr("INTERCEPT/ELLIPSOID", "MOON", et_date, 'MOON_ME',
+                                    "NONE", "SUN")
+    lon_sun_rad, lat_sun_rad, _ = spice.recpgr("MOON", sun_spoint, m_eq_rad, flattening)
+
+    # Calculate the distance between sun and moon (AU)
+    state, _ = spice.spkezr("MOON", et_date, "MOON_ME", "NONE", "SUN")
+    dist_sun_moon_km = math.sqrt(state[0]**2 + state[1]**2 + state[2]**2)
+    dist_sun_moon_au = spice.convrt(dist_sun_moon_km, "KM", "AU")
+
+
+    limit_lat_rad = math.pi/2
+    if lat_sun_rad > limit_lat_rad:
+        lat_sun_rad -= limit_lat_rad*2
+    elif lat_sun_rad < -limit_lat_rad:
+        lat_sun_rad += limit_lat_rad*2
+
+    limit_lon_rad = math.pi
+    if lon_sun_rad > limit_lon_rad:
+        lon_sun_rad -= limit_lon_rad*2
+    elif lon_sun_rad < -limit_lon_rad:
+        lon_sun_rad += limit_lon_rad*2
+
+    return MoonSunData(lon_sun_rad, lat_sun_rad, dist_sun_moon_km, dist_sun_moon_au)
+
+
 def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
                    observer_frame: str = _DEFAULT_OBSERVER_FRAME,
                    observer_zenith_name: str = _DEFAULT_OBSERVER_ZENITH_NAME,
@@ -219,9 +272,10 @@ def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
     """
     et_date = spice.str2et(utc_time)
 
-    _, radios_luna = spice.bodvrd("MOON", "RADII", 3)
-    m_eq_rad = radios_luna[0] # 1738.1 # Moon Equatorial Radius
-    m_pol_rad = radios_luna[2] # 1736 # Moon polar radius
+    #_, radios_luna = spice.bodvrd("MOON", "RADII", 3)
+    # The ones obtained with bodvrd are not correct
+    m_eq_rad = 1738.1 #radios_luna[0] # Moon Equatorial Radius
+    m_pol_rad = 1736 #radios_luna[2] # Moon polar radius
     flattening = (m_eq_rad-m_pol_rad)/m_eq_rad
 
     # Calculate moon zenith and azimuth
@@ -255,19 +309,14 @@ def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
     lon_obs = lon_obs * spice.dpr()
     lat_obs = lat_obs * spice.dpr()
 
-    # Calculate selenographic longitude of sun
-    sun_spoint, _, _ = spice.subslr("INTERCEPT/ELLIPSOID", "MOON", et_date, 'MOON_ME',
-                                    "NONE", "SUN")
-    lon_sun_rad, _, _ = spice.recpgr("MOON", sun_spoint, m_eq_rad, flattening)
-
     # Calculate the distance between observer and moon (KM)
     state, _ = spice.spkezr("MOON", et_date, "MOON_ME", "NONE", observer_name)
     dist_obs_moon = math.sqrt(state[0]**2 + state[1]**2 + state[2]**2)
 
-    # Calculate the distance between sun and moon (AU)
-    state, _ = spice.spkezr("MOON", et_date, "MOON_ME", "NONE", "SUN")
-    dist_sun_moon_km = math.sqrt(state[0]**2 + state[1]**2 + state[2]**2)
-    dist_sun_moon_au = spice.convrt(dist_sun_moon_km, "KM", "AU")
+    smd = _get_sun_moon_data(utc_time)
+    lon_sun_rad = smd.lon_sun_rad
+    dist_sun_moon_km = smd.dist_sun_moon_km
+    dist_sun_moon_au = smd.dist_sun_moon_au
 
     limit_lat = 90
     if lat_obs > limit_lat:
@@ -281,15 +330,10 @@ def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
     elif lon_obs < -limit_lon:
         lon_obs += limit_lon*2
 
-    limit_lon_rad = math.pi
-    if lon_sun_rad > limit_lon_rad:
-        lon_sun_rad -= limit_lon_rad*2
-    elif lon_sun_rad < -limit_lon_rad:
-        lon_sun_rad += limit_lon_rad*2
-
     moon_data = MoonData(dist_sun_moon_au, dist_sun_moon_km, dist_obs_moon, lon_sun_rad,
                          lat_obs, lon_obs, phase, azimuth, zenith)
     return moon_data
+
 
 def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
                        observer_id: int, observer_frame: str,
@@ -357,6 +401,7 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
 
     return moon_datas
 
+
 def _create_earth_point_kernel(utc_times: List[str], kernels_path: str, lat: int, lon: int,
                                altitude: float, id_code: int, custom_kernel_dir: str) -> None:
     """Creates a SPK custom kernel file containing the data of a point on Earth's surface
@@ -416,6 +461,7 @@ def _create_earth_point_kernel(utc_times: List[str], kernels_path: str, lat: int
 
     spice.kclear()
 
+
 def _remove_custom_kernel_file(kernels_path: str) -> None:
     """Remove the custom SPK kernel file if it exists
 
@@ -427,6 +473,7 @@ def _remove_custom_kernel_file(kernels_path: str) -> None:
     custom_kernel_path = os.path.join(kernels_path, CUSTOM_KERNEL_NAME)
     if os.path.exists(custom_kernel_path):
         os.remove(custom_kernel_path)
+
 
 def _dt_to_str(dts: Union[List[datetime], List[str]]) -> List[str]:
     """Convert a list of datetimes into a list of string dates in a valid format.
@@ -451,6 +498,37 @@ def _dt_to_str(dts: Union[List[datetime], List[str]]) -> List[str]:
         else:
             utc_times.append(dt)
     return utc_times
+
+
+def get_sun_moon_datas(times: Union[List[str], List[datetime]], kernels_path: str) -> List[MoonSunData]:
+    """
+    Obtain solar selenographic coordinates of at multiple times.
+
+    times : list of str | list of datetime
+        Times at which the lunar data will be calculated.
+        If they are str, they must be in a valid UTC format allowed by SPICE, such as
+        %Y-%m-%d %H:%M:%S.
+        If they are datetimes they must be timezone aware, or they will be understood
+        as computer local time.
+    kernels_path : str
+        Path where the SPICE kernels are stored
+    """
+    utc_times = _dt_to_str(times)
+    if(len(utc_times) == 0):
+        return []
+    kernels = ["moon_pa_de421_1900-2050.bpc", "moon_080317.tf",
+               "pck00010.tpc", "naif0011.tls", "de421.bsp", "earth_assoc_itrf93.tf",
+               "earth_latest_high_prec.bpc", "earth_070425_370426_predict.bpc"]
+    for kernel in kernels:
+        k_path = os.path.join(kernels_path, kernel)
+        _furnsh_safer(k_path)
+    
+    msds = []
+    for utc_time in utc_times:
+        msd = _get_sun_moon_data(utc_time)
+        msds.append(msd)
+    spice.kclear()
+    return msds
 
 def get_moon_datas_from_extra_kernels(times: Union[List[str], List[datetime]], kernels_path: str,
                                       extra_kernels: List[str], extra_kernels_path: str,
@@ -512,6 +590,7 @@ def get_moon_datas_from_extra_kernels(times: Union[List[str], List[datetime]], k
 
     return moon_datas
 
+
 def get_moon_datas(lat: float, lon: float, altitude: float,
                    times: Union[List[str], List[datetime]],
                    kernels_path: str, correct_zenith_azimuth: bool = True,
@@ -539,6 +618,9 @@ def get_moon_datas(lat: float, lon: float, altitude: float,
         as computer local time.
     kernels_path : str
         Path where the SPICE kernels are stored
+    correct_zenith_azimuth : bool
+        In case that it's calculated without using the extra kernels, the coordinates should be
+        corrected rotating them into the correct location.
     observer_frame : str
         Observer frame that will be used in the calculations of the azimuth and zenith.
     earth_as_zenith_observer : bool

@@ -3,4 +3,10 @@ Roberto Román, Carlos Toledano'
 __maintainer__ = "Javier Gatón Herguedas"
 __email__ = 'gaton@goa.uva.es'
 
-from .spicedmoon import get_moon_datas, get_moon_datas_from_extra_kernels, MoonData
+from .spicedmoon import (
+    get_moon_datas,
+    get_moon_datas_from_extra_kernels,
+    get_sun_moon_datas,
+    MoonData,
+    MoonSunData,
+)
