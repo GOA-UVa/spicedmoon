@@ -526,13 +526,13 @@ def _create_moon_point_kernel(utc_times: List[str], kernels_path: str, lat: int,
     kernels_path : str
         Path where the SPICE kernels are stored
     lat : float
-        Geographic latitude (in degrees) of the location.
+        Selenographic latitude (in degrees) of the location.
     lon : float
-        Geographic longitude (in degrees) of the location.
+        Selenographic longitude (in degrees) of the location.
     altitude : float
         Altitude over the sea level in meters.
     id_code : int
-        ID code that will be associated with the point on Earth's surface
+        ID code that will be associated with the point on Moon's surface
     custom_kernel_dir: str
         Path where the writable custom kernel custom.bsp will be stored.
     """
@@ -773,9 +773,9 @@ def get_moon_datas_from_moon(lat: float, lon: float, altitude: float,
     Parameters
     ----------
     lat : float
-        Geographic latitude (in degrees) of the location.
+        Selenographic latitude (in degrees) of the location.
     lon : float
-        Geographic longitude (in degrees) of the location.
+        Selenographic longitude (in degrees) of the location.
     altitude : float
         Altitude over the sea level in meters.
     times : list of str | list of datetime
