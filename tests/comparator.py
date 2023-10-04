@@ -31,7 +31,7 @@ def main():
     dt_times = [datetime(2022, 1, 17, tzinfo=timezone.utc), datetime(2022, 3, 9, 14, 33, 1, tzinfo=timezone.utc)]
     kernels_path = "kernels"
     extra_kernels = ["EarthStations.tf", "EarthStations.bsp"]
-    extra_kernels_path = "kernels"
+    extra_kernels_path = "extra_kernels"
     observer_name = "VALLADOLID"
     observer_frame = "VALLADOLID_LOCAL_LEVEL"
     oxf_lat = 51.759

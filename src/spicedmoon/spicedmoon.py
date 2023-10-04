@@ -15,7 +15,7 @@ It exports the following functions:
 from dataclasses import dataclass
 import os
 import math
-from typing import List, Union
+from typing import List, Union, Tuple
 from datetime import datetime, timezone
 import time
 
@@ -222,7 +222,7 @@ class _MoonLocation():
     """
     __slots__ = ['point_id', 'states']
     def __init__(self, point_id: int, lat: float, lon: float, altitude: float, ets: np.ndarray,
-                 delta_t: float, source_frame: str, target_frame: str):
+                 delta_t: float, source_frame: str, target_frame: str, ignore_bodvrd: bool = True):
         """
         Parameters
         ----------
@@ -242,10 +242,12 @@ class _MoonLocation():
             Name of the frame to transform from.
         target_frame : str
             Name of the frame which the location will be referencing.
+        ignore_bodvrd : bool
+            Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
+            1738.1 and 1736
         """
         self.point_id = point_id
-        eq_rad = 1738.1 # Moon equatorial radius
-        pol_rad = 1736 # Moon polar radius
+        eq_rad, pol_rad = _get_radii_moon(ignore_bodvrd)
         alt_km = altitude/1000
         flattening = (eq_rad - pol_rad)/eq_rad
         pos_iau_moon = spice.pgrrec('MOON', math.radians(lon), math.radians(lat), alt_km,
@@ -253,10 +255,9 @@ class _MoonLocation():
         self.states = _calculate_states(ets, pos_iau_moon, delta_t, source_frame, target_frame)
 
 
-def _get_sun_moon_data(utc_time: str):
+def _get_sun_moon_data(utc_time: str, ignore_bodvrd: bool = True,):
     et_date = spice.str2et(utc_time)
-    m_eq_rad = 1738.1
-    m_pol_rad = 1736
+    m_eq_rad, m_pol_rad = _get_radii_moon(ignore_bodvrd)
     flattening = (m_eq_rad-m_pol_rad)/m_eq_rad
     # Calculate selenographic longitude of sun
     sun_spoint, _, _ = spice.subslr("INTERCEPT/ELLIPSOID", "MOON", et_date, 'MOON_ME',
@@ -267,9 +268,6 @@ def _get_sun_moon_data(utc_time: str):
     state, _ = spice.spkezr("MOON", et_date, "MOON_ME", "NONE", "SUN")
     dist_sun_moon_km = math.sqrt(state[0]**2 + state[1]**2 + state[2]**2)
     dist_sun_moon_au = spice.convrt(dist_sun_moon_km, "KM", "AU")
-
-
-
 
     limit_lat_rad = math.pi/2
     limit_lon_rad = math.pi
@@ -287,12 +285,27 @@ def _get_sun_moon_data(utc_time: str):
 
     return MoonSunData(lon_sun_rad, lat_sun_rad, dist_sun_moon_km, dist_sun_moon_au)
 
+# Singleton radii moon
+_radii_moon = None
+_radii_moon_ignore_bodvrd = None
+
+def _get_radii_moon(ignore_bodvrd: bool = True) -> Tuple[float, float]:
+    global _radii_moon, _radii_moon_ignore_bodvrd
+    if _radii_moon is None or _radii_moon_ignore_bodvrd != ignore_bodvrd:
+        _, radii_moon = spice.bodvrd("MOON", "RADII", 3)
+        # The ones obtained with bodvrd are not correct
+        m_eq_rad= 1738.1 if ignore_bodvrd else radii_moon[0] # Moon Equatorial Radius
+        m_pol_rad = 1736 if ignore_bodvrd else radii_moon[2] # Moon polar radius
+        _radii_moon = (m_eq_rad, m_pol_rad)
+        _radii_moon_ignore_bodvrd = ignore_bodvrd
+    return _radii_moon
+
 
 def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
                    observer_frame: str = _DEFAULT_OBSERVER_FRAME,
                    observer_zenith_name: str = _DEFAULT_OBSERVER_ZENITH_NAME,
                    correct_zenith_azimuth: bool = False, longitude: float = 0,
-                   colat: float = 0) -> MoonData:
+                   colat: float = 0, ignore_bodvrd: bool = True) -> MoonData:
     """Calculation of the moon data for the given utc_time for the loaded observer
 
     Parameters
@@ -316,6 +329,9 @@ def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
     colat : float
         Geographic colatitude of the observer point. Used if it's calculated without using the
         extra kernels.
+    ignore_bodvrd : bool
+        Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
+        1738.1 and 1736
     Returns
     -------
     MoonData
@@ -323,10 +339,7 @@ def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
     """
     et_date = spice.str2et(utc_time)
 
-    #_, radios_luna = spice.bodvrd("MOON", "RADII", 3)
-    # The ones obtained with bodvrd are not correct
-    m_eq_rad = 1738.1 #radios_luna[0] # Moon Equatorial Radius
-    m_pol_rad = 1736 #radios_luna[2] # Moon polar radius
+    m_eq_rad, m_pol_rad = _get_radii_moon(ignore_bodvrd)
     flattening = (m_eq_rad-m_pol_rad)/m_eq_rad
 
     # Calculate moon zenith and azimuth
@@ -364,7 +377,7 @@ def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
     state, _ = spice.spkezr("MOON", et_date, "MOON_ME", "NONE", observer_name)
     dist_obs_moon = math.sqrt(state[0]**2 + state[1]**2 + state[2]**2)
 
-    smd = _get_sun_moon_data(utc_time)
+    smd = _get_sun_moon_data(utc_time, ignore_bodvrd)
     lon_sun_rad = smd.lon_sun_rad
     dist_sun_moon_km = smd.dist_sun_moon_km
     dist_sun_moon_au = smd.dist_sun_moon_au
@@ -393,7 +406,9 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
                        custom_kernel_dir: str,
                        correct_zenith_azimuth: bool = False,
                        latitude: float = 0, longitude: float = 0,
-                       earth_as_zenith_observer: bool = False) -> List[MoonData]:
+                       earth_as_zenith_observer: bool = False,
+                       ignore_bodvrd: bool = True,
+    ) -> List[MoonData]:
     """Calculation of needed MoonDatas from SPICE toolbox
 
     Moon phase angle, selenographic coordinates and distance from observer point to moon.
@@ -421,6 +436,9 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
     earth_as_zenith_observer : bool
         If True the Earth will be used as the observer for the zenith and azimuth calculation.
         Otherwise it will be the actual observer. By default is False.
+    ignore_bodvrd : bool
+        Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
+        1738.1 and 1736
     Returns
     -------
     list of MoonData
@@ -447,7 +465,7 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
     lon = longitude%180
     for utc_time in utc_times:
         new_md = _get_moon_data(utc_time, observer_name, observer_frame, zenith_observer,
-            correct_zenith_azimuth, lon, colat)
+            correct_zenith_azimuth, lon, colat, ignore_bodvrd)
         moon_datas.append(new_md)
 
     spice.kclear()
@@ -516,7 +534,8 @@ def _create_earth_point_kernel(utc_times: List[str], kernels_path: str, lat: int
 
 
 def _create_moon_point_kernel(utc_times: List[str], kernels_path: str, lat: int, lon: int,
-                               altitude: float, id_code: int, custom_kernel_dir: str) -> None:
+                               altitude: float, id_code: int, custom_kernel_dir: str,
+                               ignore_bodvrd: bool = True,) -> None:
     """Creates a SPK custom kernel file containing the data of a point on Earth's surface
 
     Parameters
@@ -535,6 +554,9 @@ def _create_moon_point_kernel(utc_times: List[str], kernels_path: str, lat: int,
         ID code that will be associated with the point on Moon's surface
     custom_kernel_dir: str
         Path where the writable custom kernel custom.bsp will be stored.
+    ignore_bodvrd : bool
+        Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
+        1738.1 and 1736
     """
     kernels = ["moon_pa_de421_1900-2050.bpc", "moon_080317.tf",
                "pck00010.tpc", "naif0011.tls", "earth_assoc_itrf93.tf",
@@ -562,7 +584,7 @@ def _create_moon_point_kernel(utc_times: List[str], kernels_path: str, lat: int,
                 ets = np.insert(ets, index, et_t)
 
     target_frame = source_frame = 'MOON_ME'
-    obs = _MoonLocation(id_code, lat, lon, altitude, ets, delta_t, source_frame, target_frame)
+    obs = _MoonLocation(id_code, lat, lon, altitude, ets, delta_t, source_frame, target_frame, ignore_bodvrd)
 
     custom_kernel_path = os.path.join(custom_kernel_dir, CUSTOM_KERNEL_NAME)
     handle = spice.spkopn(custom_kernel_path, 'SPK_file', 0)
@@ -614,7 +636,11 @@ def _dt_to_str(dts: Union[List[datetime], List[str]]) -> List[str]:
     return utc_times
 
 
-def get_sun_moon_datas(times: Union[List[str], List[datetime]], kernels_path: str) -> List[MoonSunData]:
+def get_sun_moon_datas(
+        times: Union[List[str], List[datetime]],
+        kernels_path: str,
+        ignore_bodvrd: bool = True,
+    ) -> List[MoonSunData]:
     """
     Obtain solar selenographic coordinates of at multiple times.
 
@@ -626,6 +652,9 @@ def get_sun_moon_datas(times: Union[List[str], List[datetime]], kernels_path: st
         as computer local time.
     kernels_path : str
         Path where the SPICE kernels are stored
+    ignore_bodvrd : bool
+        Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
+        1738.1 and 1736
     """
     utc_times = _dt_to_str(times)
     if(len(utc_times) == 0):
@@ -639,7 +668,7 @@ def get_sun_moon_datas(times: Union[List[str], List[datetime]], kernels_path: st
     
     msds = []
     for utc_time in utc_times:
-        msd = _get_sun_moon_data(utc_time)
+        msd = _get_sun_moon_data(utc_time, ignore_bodvrd)
         msds.append(msd)
     spice.kclear()
     return msds
@@ -647,7 +676,8 @@ def get_sun_moon_datas(times: Union[List[str], List[datetime]], kernels_path: st
 def get_moon_datas_from_extra_kernels(times: Union[List[str], List[datetime]], kernels_path: str,
                                       extra_kernels: List[str], extra_kernels_path: str,
                                       observer_name: str, observer_frame: str,
-                                      earth_as_zenith_observer: bool = False
+                                      earth_as_zenith_observer: bool = False,
+                                      ignore_bodvrd: bool = True,
                                       ) -> List[MoonData]:
     """Calculation of needed Moon data from SPICE toolbox
 
@@ -675,6 +705,9 @@ def get_moon_datas_from_extra_kernels(times: Union[List[str], List[datetime]], k
     earth_as_zenith_observer : bool
         If True the Earth will be used as the observer for the zenith and azimuth calculation.
         Otherwise it will be the actual observer. By default is False.
+    ignore_bodvrd : bool
+        Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
+        1738.1 and 1736
     Returns
     -------
     list of MoonData
@@ -698,7 +731,7 @@ def get_moon_datas_from_extra_kernels(times: Union[List[str], List[datetime]], k
     utc_times = _dt_to_str(times)
     for utc_time in utc_times:
         moon_datas.append(_get_moon_data(utc_time, observer_name, observer_frame,
-            zenith_observer))
+            zenith_observer, ignore_bodvrd=ignore_bodvrd))
 
     spice.kclear()
 
@@ -710,7 +743,8 @@ def get_moon_datas(lat: float, lon: float, altitude: float,
                    kernels_path: str, correct_zenith_azimuth: bool = True,
                    observer_frame: str = "ITRF93",
                    earth_as_zenith_observer: bool = False, custom_kernel_path: str = None,
-                   ) -> List[MoonData]:
+                   ignore_bodvrd: bool = True,
+    ) -> List[MoonData]:
     """Calculation of needed Moon data from SPICE toolbox
 
     Moon phase angle, selenographic coordinates and distance from observer point to moon.
@@ -743,6 +777,9 @@ def get_moon_datas(lat: float, lon: float, altitude: float,
     custom_kernel_path: str
         Path of the kernel custom.bsp that will be edited by the library, not only read.
         If none, it will be the same as kernels_path.
+    ignore_bodvrd : bool
+        Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
+        1738.1 and 1736
     Returns
     -------
     list of MoonData
@@ -757,14 +794,15 @@ def get_moon_datas(lat: float, lon: float, altitude: float,
     _remove_custom_kernel_file(custom_kernel_path)
     _create_earth_point_kernel(utc_times, kernels_path, lat, lon, altitude, id_code, custom_kernel_path)
     return _get_moon_datas_id(utc_times, kernels_path, id_code, observer_frame, custom_kernel_path,
-        correct_zenith_azimuth, lat, lon, earth_as_zenith_observer)
+        correct_zenith_azimuth, lat, lon, earth_as_zenith_observer, ignore_bodvrd)
 
 
 def get_moon_datas_from_moon(lat: float, lon: float, altitude: float,
                    times: Union[List[str], List[datetime]],
                    kernels_path: str, correct_zenith_azimuth: bool = True,
                    observer_frame: str = "MOON_ME", custom_kernel_path: str = None,
-                   ) -> List[MoonData]:
+                   ignore_bodvrd: bool = True,
+    ) -> List[MoonData]:
     """Calculation of needed Moon data from SPICE toolbox
 
     Moon phase angle, selenographic coordinates and distance from observer point to moon.
@@ -794,6 +832,9 @@ def get_moon_datas_from_moon(lat: float, lon: float, altitude: float,
     custom_kernel_path: str
         Path of the kernel custom.bsp that will be edited by the library, not only read.
         If none, it will be the same as kernels_path.
+    ignore_bodvrd : bool
+        Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
+        1738.1 and 1736
     Returns
     -------
     list of MoonData
@@ -806,6 +847,6 @@ def get_moon_datas_from_moon(lat: float, lon: float, altitude: float,
     if(len(utc_times) == 0):
         return []
     _remove_custom_kernel_file(custom_kernel_path)
-    _create_moon_point_kernel(utc_times, kernels_path, lat, lon, altitude, id_code, custom_kernel_path)
+    _create_moon_point_kernel(utc_times, kernels_path, lat, lon, altitude, id_code, custom_kernel_path, ignore_bodvrd)
     return _get_moon_datas_id(utc_times, kernels_path, id_code, observer_frame, custom_kernel_path,
-        correct_zenith_azimuth, lat, lon, False)
+        correct_zenith_azimuth, lat, lon, False, ignore_bodvrd)
