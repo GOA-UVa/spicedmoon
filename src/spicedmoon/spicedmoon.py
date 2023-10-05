@@ -474,7 +474,8 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
 
 
 def _create_earth_point_kernel(utc_times: List[str], kernels_path: str, lat: int, lon: int,
-                               altitude: float, id_code: int, custom_kernel_dir: str) -> None:
+                               altitude: float, id_code: int, custom_kernel_dir: str,
+                               source_frame: str = 'ITRF93', target_frame: str = 'ITRF93') -> None:
     """Creates a SPK custom kernel file containing the data of a point on Earth's surface
 
     Parameters
@@ -493,6 +494,10 @@ def _create_earth_point_kernel(utc_times: List[str], kernels_path: str, lat: int
         ID code that will be associated with the point on Earth's surface
     custom_kernel_dir: str
         Path where the writable custom kernel custom.bsp will be stored.
+    source_frame : str
+        Name of the frame to transform the coordinates from.
+    target_frame : str
+        Name of the frame which the location point will be referencing.
     """
     kernels = ["pck00010.tpc", "naif0011.tls", "earth_assoc_itrf93.tf",
                "de421.bsp", "earth_latest_high_prec.bpc", "earth_070425_370426_predict.bpc"]
@@ -518,7 +523,6 @@ def _create_earth_point_kernel(utc_times: List[str], kernels_path: str, lat: int
                 index = np.searchsorted(ets, et_t)
                 ets = np.insert(ets, index, et_t)
 
-    target_frame = source_frame = 'ITRF93'
     obs = _EarthLocation(id_code, lat, lon, altitude, ets, delta_t, source_frame, target_frame)
 
     custom_kernel_path = os.path.join(custom_kernel_dir, CUSTOM_KERNEL_NAME)
@@ -535,7 +539,8 @@ def _create_earth_point_kernel(utc_times: List[str], kernels_path: str, lat: int
 
 def _create_moon_point_kernel(utc_times: List[str], kernels_path: str, lat: int, lon: int,
                                altitude: float, id_code: int, custom_kernel_dir: str,
-                               ignore_bodvrd: bool = True,) -> None:
+                               ignore_bodvrd: bool = True, source_frame: str = 'MOON_ME',
+                               target_frame: str = 'MOON_ME') -> None:
     """Creates a SPK custom kernel file containing the data of a point on Earth's surface
 
     Parameters
@@ -557,6 +562,10 @@ def _create_moon_point_kernel(utc_times: List[str], kernels_path: str, lat: int,
     ignore_bodvrd : bool
         Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
         1738.1 and 1736
+    source_frame : str
+        Name of the frame to transform the coordinates from.
+    target_frame : str
+        Name of the frame which the location point will be referencing.
     """
     kernels = ["moon_pa_de421_1900-2050.bpc", "moon_080317.tf",
                "pck00010.tpc", "naif0011.tls", "earth_assoc_itrf93.tf",
@@ -583,7 +592,6 @@ def _create_moon_point_kernel(utc_times: List[str], kernels_path: str, lat: int,
                 index = np.searchsorted(ets, et_t)
                 ets = np.insert(ets, index, et_t)
 
-    target_frame = source_frame = 'MOON_ME'
     obs = _MoonLocation(id_code, lat, lon, altitude, ets, delta_t, source_frame, target_frame, ignore_bodvrd)
 
     custom_kernel_path = os.path.join(custom_kernel_dir, CUSTOM_KERNEL_NAME)
@@ -743,7 +751,7 @@ def get_moon_datas(lat: float, lon: float, altitude: float,
                    kernels_path: str, correct_zenith_azimuth: bool = True,
                    observer_frame: str = "ITRF93",
                    earth_as_zenith_observer: bool = False, custom_kernel_path: str = None,
-                   ignore_bodvrd: bool = True,
+                   ignore_bodvrd: bool = True, source_frame: str = 'ITRF93', target_frame: str = 'ITRF93',
     ) -> List[MoonData]:
     """Calculation of needed Moon data from SPICE toolbox
 
@@ -780,6 +788,10 @@ def get_moon_datas(lat: float, lon: float, altitude: float,
     ignore_bodvrd : bool
         Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
         1738.1 and 1736
+    source_frame : str
+        Name of the frame to transform the coordinates from.
+    target_frame : str
+        Name of the frame which the location point will be referencing.
     Returns
     -------
     list of MoonData
@@ -792,7 +804,7 @@ def get_moon_datas(lat: float, lon: float, altitude: float,
     if(len(utc_times) == 0):
         return []
     _remove_custom_kernel_file(custom_kernel_path)
-    _create_earth_point_kernel(utc_times, kernels_path, lat, lon, altitude, id_code, custom_kernel_path)
+    _create_earth_point_kernel(utc_times, kernels_path, lat, lon, altitude, id_code, custom_kernel_path, source_frame, target_frame)
     return _get_moon_datas_id(utc_times, kernels_path, id_code, observer_frame, custom_kernel_path,
         correct_zenith_azimuth, lat, lon, earth_as_zenith_observer, ignore_bodvrd)
 
@@ -801,7 +813,8 @@ def get_moon_datas_from_moon(lat: float, lon: float, altitude: float,
                    times: Union[List[str], List[datetime]],
                    kernels_path: str, correct_zenith_azimuth: bool = True,
                    observer_frame: str = "MOON_ME", custom_kernel_path: str = None,
-                   ignore_bodvrd: bool = True,
+                   ignore_bodvrd: bool = True, source_frame: str = 'MOON_ME',
+                   target_frame: str = 'MOON_ME',
     ) -> List[MoonData]:
     """Calculation of needed Moon data from SPICE toolbox
 
@@ -835,6 +848,10 @@ def get_moon_datas_from_moon(lat: float, lon: float, altitude: float,
     ignore_bodvrd : bool
         Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
         1738.1 and 1736
+    source_frame : str
+        Name of the frame to transform the coordinates from.
+    target_frame : str
+        Name of the frame which the location point will be referencing.
     Returns
     -------
     list of MoonData
@@ -847,6 +864,7 @@ def get_moon_datas_from_moon(lat: float, lon: float, altitude: float,
     if(len(utc_times) == 0):
         return []
     _remove_custom_kernel_file(custom_kernel_path)
-    _create_moon_point_kernel(utc_times, kernels_path, lat, lon, altitude, id_code, custom_kernel_path, ignore_bodvrd)
+    _create_moon_point_kernel(utc_times, kernels_path, lat, lon, altitude, id_code,
+                              custom_kernel_path, ignore_bodvrd, source_frame, target_frame)
     return _get_moon_datas_id(utc_times, kernels_path, id_code, observer_frame, custom_kernel_path,
         correct_zenith_azimuth, lat, lon, False, ignore_bodvrd)
