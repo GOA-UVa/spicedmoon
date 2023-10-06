@@ -42,6 +42,14 @@ _DEFAULT_OBSERVER_NAME = "Observer"
 _DEFAULT_OBSERVER_FRAME = "Observer_LOCAL_LEVEL"
 _DEFAULT_OBSERVER_ZENITH_NAME = "EARTH"
 
+_BASIC_KERNELS = [
+    "pck00010.tpc", "naif0011.tls", "earth_assoc_itrf93.tf",
+    "de421.bsp", "earth_latest_high_prec.bpc", "earth_070425_370426_predict.bpc",
+]
+_MOON_KERNELS = [
+    "moon_pa_de421_1900-2050.bpc", "moon_080317.tf",
+]
+
 @dataclass
 class MoonData:
     """
@@ -444,9 +452,7 @@ def _get_moon_datas_id(utc_times: List[str], kernels_path: str,
     list of MoonData
         Moon data obtained from SPICE toolbox
     """
-    kernels = ["moon_pa_de421_1900-2050.bpc", "moon_080317.tf",
-               "pck00010.tpc", "naif0011.tls", "de421.bsp", "earth_assoc_itrf93.tf",
-               "earth_latest_high_prec.bpc", "earth_070425_370426_predict.bpc"]
+    kernels = _BASIC_KERNELS + _MOON_KERNELS
 
     for kernel in kernels:
         k_path = os.path.join(kernels_path, kernel)
@@ -499,8 +505,9 @@ def _create_earth_point_kernel(utc_times: List[str], kernels_path: str, lat: int
     target_frame : str
         Name of the frame which the location point will be referencing.
     """
-    kernels = ["pck00010.tpc", "naif0011.tls", "earth_assoc_itrf93.tf",
-               "de421.bsp", "earth_latest_high_prec.bpc", "earth_070425_370426_predict.bpc"]
+    kernels = _BASIC_KERNELS
+    if 'MOON' in source_frame or 'MOON' in target_frame:
+        kernels += _MOON_KERNELS
     for kernel in kernels:
         k_path = os.path.join(kernels_path, kernel)
         _furnsh_safer(k_path)
@@ -567,9 +574,7 @@ def _create_moon_point_kernel(utc_times: List[str], kernels_path: str, lat: int,
     target_frame : str
         Name of the frame which the location point will be referencing.
     """
-    kernels = ["moon_pa_de421_1900-2050.bpc", "moon_080317.tf",
-               "pck00010.tpc", "naif0011.tls", "earth_assoc_itrf93.tf",
-               "de421.bsp", "earth_latest_high_prec.bpc", "earth_070425_370426_predict.bpc"]
+    kernels = _BASIC_KERNELS + _MOON_KERNELS
     for kernel in kernels:
         k_path = os.path.join(kernels_path, kernel)
         _furnsh_safer(k_path)
@@ -667,9 +672,7 @@ def get_sun_moon_datas(
     utc_times = _dt_to_str(times)
     if(len(utc_times) == 0):
         return []
-    kernels = ["moon_pa_de421_1900-2050.bpc", "moon_080317.tf",
-               "pck00010.tpc", "naif0011.tls", "de421.bsp", "earth_assoc_itrf93.tf",
-               "earth_latest_high_prec.bpc", "earth_070425_370426_predict.bpc"]
+    kernels = _BASIC_KERNELS + _MOON_KERNELS
     for kernel in kernels:
         k_path = os.path.join(kernels_path, kernel)
         _furnsh_safer(k_path)
@@ -721,9 +724,7 @@ def get_moon_datas_from_extra_kernels(times: Union[List[str], List[datetime]], k
     list of MoonData
         Moon data obtained from SPICE toolbox
     """
-    base_kernels = ["moon_pa_de421_1900-2050.bpc", "moon_080317.tf",
-               "pck00010.tpc", "naif0011.tls", "de421.bsp", "earth_assoc_itrf93.tf",
-               "earth_latest_high_prec.bpc", "earth_070425_370426_predict.bpc"]
+    base_kernels = _BASIC_KERNELS + _MOON_KERNELS
     for kernel in base_kernels:
         k_path = os.path.join(kernels_path, kernel)
         _furnsh_safer(k_path)
