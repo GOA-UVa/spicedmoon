@@ -81,6 +81,7 @@ class MoonData:
     dist_sun_moon_km: float
     dist_obs_moon: float
     lon_sun_rad: float
+    lat_sun_rad: float
     lat_obs: float
     lon_obs: float
     mpa_deg: float
@@ -387,6 +388,7 @@ def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
 
     smd = _get_sun_moon_data(utc_time, ignore_bodvrd)
     lon_sun_rad = smd.lon_sun_rad
+    lat_sun_rad = smd.lat_sun_rad
     dist_sun_moon_km = smd.dist_sun_moon_km
     dist_sun_moon_au = smd.dist_sun_moon_au
 
@@ -405,7 +407,7 @@ def _get_moon_data(utc_time: str, observer_name: str = _DEFAULT_OBSERVER_NAME,
         lon_obs += limit_lon*2
 
     moon_data = MoonData(dist_sun_moon_au, dist_sun_moon_km, dist_obs_moon, lon_sun_rad,
-                         lat_obs, lon_obs, phase, azimuth, zenith)
+                         lat_sun_rad, lat_obs, lon_obs, phase, azimuth, zenith)
     return moon_data
 
 
@@ -869,3 +871,76 @@ def get_moon_datas_from_moon(lat: float, lon: float, altitude: float,
                               custom_kernel_path, ignore_bodvrd, source_frame, target_frame)
     return _get_moon_datas_id(utc_times, kernels_path, id_code, observer_frame, custom_kernel_path,
         correct_zenith_azimuth, lat, lon, False, ignore_bodvrd)
+
+
+def get_moon_datas_xyzs_no_zenith_azimuth(
+        xyzs: List[Tuple[float, float, float]], dts: List[str], kernels_path: str, source_frame: str = 'J2000', target_frame: str = 'MOON_ME'
+    ) -> List[MoonData]:
+    """Calculation of needed Moon data from SPICE toolbox, without the zenith nor azimuth, in a faster way.
+
+    xyzs: list of tuple of 3 floats
+        Observer rectangular positions
+    dts : list of str | list of datetime
+        Times at which the lunar data will be calculated.
+        If they are str, they must be in a valid UTC format allowed by SPICE, such as
+        %Y-%m-%d %H:%M:%S.
+        If they are datetimes they must be timezone aware, or they will be understood
+        as computer local time.
+    kernels_path : str
+        Path where the SPICE kernels are stored
+    source_frame : str
+        Name of the frame to transform the coordinates from.
+    target_frame : str
+        Name of the frame which the location point will be referencing.
+    
+    Returns
+    -------
+    list of MoonData
+        List of the calculated MoonDatas, but without the zenith and azimuth values
+    """
+    kernels = _BASIC_KERNELS + _MOON_KERNELS
+    for kernel in kernels:
+        k_path = os.path.join(kernels_path, kernel)
+        _furnsh_safer(k_path)
+    mds = []
+    for xyz, dt in zip(xyzs, dts):
+        et = spice.str2et(dt)
+        sun_pos_moonref, lightime = spice.spkpos('SUN', et, target_frame, 'NONE', 'MOON')
+        sun_pos_satref, lighttime = spice.spkpos('SUN', et, source_frame, 'NONE', 'EARTH')
+        moon_pos_satref, lightime = spice.spkpos('MOON', et, source_frame, 'NONE', 'EARTH')
+        rotation = spice.pxform(source_frame, target_frame, et)
+        # set moon center as zero point
+        sat_pos_translate = np.zeros(3)
+        sat_pos_translate[0] = xyz[0] - moon_pos_satref[0]
+        sat_pos_translate[1] = xyz[1] - moon_pos_satref[1]
+        sat_pos_translate[2] = xyz[2] - moon_pos_satref[2]
+        sat_pos_moonref = spice.mxv(rotation, sat_pos_translate)
+        # selenographic coordinates
+        # sun 
+        sel_lon_sun = np.arctan2(sun_pos_moonref[1], sun_pos_moonref[0]) * 180.0 / np.pi
+        sel_lat_sun = np.arctan2(sun_pos_moonref[2], 
+                            np.sqrt(sun_pos_moonref[0]* sun_pos_moonref[0] + 
+                                    sun_pos_moonref[1] * sun_pos_moonref[1])) * 180.0 / np.pi
+        distance_sun_moon = np.sqrt( sun_pos_moonref[0] * sun_pos_moonref[0] + 
+                                    sun_pos_moonref[1] * sun_pos_moonref[1] + 
+                                    sun_pos_moonref[2] * sun_pos_moonref[2] )
+        dist_sun_moon_au = spice.convrt(distance_sun_moon, "KM", "AU")
+        # sat
+        sel_lon_sat = np.arctan2(sat_pos_moonref[1], sat_pos_moonref[0])*180.0 / np.pi
+        sel_lat_sat = np.arctan2(sat_pos_moonref[2],
+                            np.sqrt(sat_pos_moonref[0] * sat_pos_moonref[0] +
+                            sat_pos_moonref[1] * sat_pos_moonref[1])) * 180.0 / np.pi
+        distance_sat_moon = np.sqrt(
+                            sat_pos_moonref[0] * sat_pos_moonref[0] + 
+                            sat_pos_moonref[1] * sat_pos_moonref[1] + 
+                            sat_pos_moonref[2] * sat_pos_moonref[2] )
+        # phase
+        phase = (180.0 / np.pi) * np.arccos((sun_pos_moonref[0] * sat_pos_moonref[0] + 
+            sun_pos_moonref[1] * sat_pos_moonref[1] + 
+            sun_pos_moonref[2] * sat_pos_moonref[2]) / 
+            (distance_sat_moon*distance_sun_moon))
+        md = MoonData(dist_sun_moon_au, distance_sun_moon, distance_sat_moon, sel_lon_sun, sel_lat_sun,
+                      sel_lat_sat, sel_lon_sat, phase, None, None)
+        mds.append(md)
+    spice.kclear()
+    return mds
