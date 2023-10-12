@@ -878,7 +878,10 @@ def _get_moon_datas_xyzs_no_zenith_azimuth(
     ) -> Tuple[float, float, float, float, float, float, float, float]:
     sun_pos_moonref, lightime = spice.spkpos('SUN', et, target_frame, 'NONE', 'MOON')
     sun_pos_satref, lighttime = spice.spkpos('SUN', et, source_frame, 'NONE', 'EARTH')
-    moon_pos_satref, lightime = spice.spkpos('MOON', et, source_frame, 'NONE', 'EARTH')
+    if 'MOON' in source_frame and 'MOON' in target_frame:
+        moon_pos_satref, lightime = spice.spkpos('MOON', et, source_frame, 'NONE', 'MOON')
+    else:
+        moon_pos_satref, lightime = spice.spkpos('MOON', et, source_frame, 'NONE', 'EARTH')
     rotation = spice.pxform(source_frame, target_frame, et)
     # set moon center as zero point
     sat_pos_translate = np.zeros(3)
@@ -928,9 +931,9 @@ def get_moon_datas_xyzs_no_zenith_azimuth(
     kernels_path : str
         Path where the SPICE kernels are stored
     source_frame : str
-        Name of the frame to transform the coordinates from.
+        Name of the EARTH or MOON frame to transform the coordinates from.
     target_frame : str
-        Name of the frame which the location point will be referencing.
+        Name of the MOON frame which the location point will be referencing.
     
     Returns
     -------
