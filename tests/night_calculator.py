@@ -62,6 +62,8 @@ def main():
     lat = 28.309283
     lon = -16.499143
     alt = 2400
+    print_ephem(dts, lat, lon, alt)
+    print()
     print_spicedmoon_earth(dts, lat, lon, alt)
 
 if __name__ == "__main__":

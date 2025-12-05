@@ -3,3 +3,4 @@ dist
 kernels
 *egg-info
 *temp*
+__pycache__
