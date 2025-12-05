@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased] - yyyy-mm-dd
 
+### Added
+- `dt_to_str` throws a runtime warning if any `datetime` is timezone-naive.
+
 ### Changed
 - Changed project license from MIT to LGPL.
 - Modernized project structure: consolidated configuration into `pyproject.toml`, added a `CHANGELOG`, and applied current best practices.
