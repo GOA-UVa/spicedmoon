@@ -10,8 +10,6 @@ It exports the following functions:
     * get_sun_moon_datas - Calculates solar selenographic coordinates.
     * get_moon_datas_from_moon - Calculates needed MoonData from SPICE toolbox from selenographic coordinates
 """
-
-"""___Built-In Modules___"""
 from dataclasses import dataclass
 import os
 import math
@@ -19,20 +17,8 @@ from typing import List, Union, Tuple
 from datetime import datetime, timezone
 import time
 
-"""___Third-Party Modules___"""
 import numpy as np
 import spiceypy as spice
-
-"""___spiced_moon Modules___"""
-# import here
-
-"""___Authorship___"""
-__author__ = 'Javier Gatón Herguedas, Juan Carlos Antuña Sánchez, Ramiro González Catón,\
-Roberto Román, Carlos Toledano'
-__created__ = "2022/03/03"
-__maintainer__ = "Javier Gatón Herguedas"
-__email__ = "gaton@goa.uva.es"
-__status__ = "Development"
 
 CUSTOM_KERNEL_NAME = "custom.bsp"
 EARTH_ID_CODE = 399
