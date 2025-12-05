@@ -6,7 +6,7 @@ import numpy as np
 import spiceypy as spice
 
 from .basics import furnsh_safer, dt_to_str
-from .core import get_moon_data
+from .core import get_moon_data_body_ellipsoid
 from .types import MoonData
 from .constants import BASIC_KERNELS, MOON_KERNELS
 
@@ -71,7 +71,7 @@ def get_moon_datas_from_extra_kernels(
     utc_times = dt_to_str(times)
     for utc_time in utc_times:
         moon_datas.append(
-            get_moon_data(
+            get_moon_data_body_ellipsoid(
                 utc_time,
                 observer_name,
                 observer_frame,

@@ -1,3 +1,6 @@
+"""
+Solar related products. Maybe calculation of solar selenographic coordinates.
+"""
 import os
 from typing import Union, List
 from datetime import datetime
@@ -13,7 +16,24 @@ from .basics import dt_to_str, furnsh_safer, get_radii_moon
 def get_sun_moon_data(
     utc_time: str,
     ignore_bodvrd: bool = True,
-):
+) -> MoonSunData:
+    """
+    Obtain solar selenographic coordinates for a specific timestamp.
+
+    Parameters
+    ----------
+    time : str
+        Timestamp of the wanted selenographic coordinates.
+        It must be in UTC and in a SPICE-compatible format, such as %Y-%m-%d %H:%M:%S.
+    ignore_bodvrd : bool
+        Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use
+        `spicedmoon` default lunar radii values, which are more accurate. True by default.
+
+    Returns
+    -------
+    msd: MoonSunData
+        Solar selenographic coordinates at the given timestamp.
+    """
     et_date = spice.str2et(utc_time)
     m_eq_rad, m_pol_rad = get_radii_moon(ignore_bodvrd)
     flattening = (m_eq_rad - m_pol_rad) / m_eq_rad
@@ -51,19 +71,18 @@ def get_sun_moon_datas(
     ignore_bodvrd: bool = True,
 ) -> List[MoonSunData]:
     """
-    Obtain solar selenographic coordinates of at multiple times.
+    Obtain solar selenographic coordinates for multiple timestamps.
 
     times : list of str | list of datetime
-        Times at which the lunar data will be calculated.
-        If they are str, they must be in a valid UTC format allowed by SPICE, such as
-        %Y-%m-%d %H:%M:%S.
-        If they are datetimes they must be timezone aware, or they will be understood
-        as computer local time.
+        Timestamps of the wanted selenographic coordinates.
+        If `str`, they must be in UTC in a SPICE-compatible format, such as %Y-%m-%d %H:%M:%S.
+        If `datetime` they must be timezone aware, or they will be understood as computer
+        local time.
     kernels_path : str
-        Path where the SPICE kernels are stored
+        Path where the SPICE kernels are stored.
     ignore_bodvrd : bool
-        Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
-        1738.1 and 1736
+        Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use
+        `spicedmoon` default lunar radii values, which are more accurate. True by default.
     """
     utc_times = dt_to_str(times)
     if len(utc_times) == 0:

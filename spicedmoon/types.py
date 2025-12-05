@@ -1,3 +1,7 @@
+"""
+Common and simple data types and data structures.
+"""
+
 from dataclasses import dataclass
 
 

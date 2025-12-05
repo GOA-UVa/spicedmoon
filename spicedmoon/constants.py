@@ -1,3 +1,6 @@
+"""
+Constants used in different `spicedmoon` submodules.
+"""
 CUSTOM_KERNEL_NAME = "custom.bsp"
 MOON_ID_CODE = 301
 BASIC_KERNELS = [
@@ -15,3 +18,5 @@ MOON_KERNELS = [
 DEFAULT_OBSERVER_NAME = "Observer"
 DEFAULT_OBSERVER_FRAME = "Observer_LOCAL_LEVEL"
 DEFAULT_OBSERVER_ZENITH_NAME = "EARTH"
+MOON_EQ_RAD = 1738.1
+MOON_POL_RAD = 1736

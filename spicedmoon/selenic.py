@@ -2,19 +2,21 @@ import os
 from typing import List, Union
 from datetime import datetime
 
-import numpy as np
 import spiceypy as spice
 
 from .basics import (
-    Location,
     furnsh_safer,
     dt_to_str,
-    remove_custom_kernel_file,
     get_radii_moon,
 )
-from .core import get_moon_datas_id
-from .constants import MOON_ID_CODE, CUSTOM_KERNEL_NAME, BASIC_KERNELS, MOON_KERNELS
+from .core import get_moon_datas_body_ellipsoid_id
+from .constants import MOON_ID_CODE, BASIC_KERNELS, MOON_KERNELS
 from .types import MoonData
+from .customkernel import (
+    Location,
+    create_custom_point_kernel,
+    remove_custom_kernel_file,
+)
 
 
 class _MoonLocation(Location):
@@ -25,6 +27,10 @@ class _MoonLocation(Location):
     ----------
     point_id : int
         ID code that will be associated with the point on Moon's surface
+    polynomial_degree: int
+        Degree of the lagrange polynomials that used to interpolate the states.
+    ets: np.ndarray of float64
+        Array of TDB seconds from J2000 (et dates) of which the data will be taken.
     states : np.ndarray of float64
         Array of geometric states of body relative to center
     """
@@ -32,11 +38,10 @@ class _MoonLocation(Location):
     def __init__(
         self,
         point_id: int,
+        utc_times: List[str],
         lat: float,
         lon: float,
         altitude: float,
-        ets: np.ndarray,
-        delta_t: float,
         source_frame: str,
         target_frame: str,
         ignore_bodvrd: bool = True,
@@ -67,14 +72,13 @@ class _MoonLocation(Location):
         eq_rad, pol_rad = get_radii_moon(ignore_bodvrd)
         super().__init__(
             point_id,
+            utc_times,
             "MOON",
             lat,
             lon,
             altitude,
             eq_rad,
             pol_rad,
-            ets,
-            delta_t,
             source_frame,
             target_frame,
         )
@@ -122,55 +126,18 @@ def _create_moon_point_kernel(
     for kernel in kernels:
         k_path = os.path.join(kernels_path, kernel)
         furnsh_safer(k_path)
-
-    polynomial_degree = 5
-    # Degree of the lagrange polynomials that will be used to interpolate the states
-    delta_t = 1  # TDB seconds between states. Arbitrary.
-    min_states_polynomial = polynomial_degree + 1
-    # Min # states that are required to define a polynomial of that degree
-    ets = np.array([])
-    left_states = int(min_states_polynomial / 2)
-    right_states = left_states + min_states_polynomial % 2
-    for utc_time in utc_times:
-        et0 = spice.str2et(utc_time)
-        etprev = et0 - delta_t * left_states
-        etf = et0 + delta_t * right_states
-        ets_t = np.arange(etprev, etf, delta_t)
-        for et_t in ets_t:
-            if et_t not in ets:
-                index = np.searchsorted(ets, et_t)
-                ets = np.insert(ets, index, et_t)
-
     obs = _MoonLocation(
         id_code,
+        utc_times,
         lat,
         lon,
         altitude,
-        ets,
-        delta_t,
         source_frame,
         target_frame,
         ignore_bodvrd,
     )
-
-    custom_kernel_path = os.path.join(custom_kernel_dir, CUSTOM_KERNEL_NAME)
-    handle = spice.spkopn(custom_kernel_path, "SPK_file", 0)
-
     center = MOON_ID_CODE
-    spice.spkw09(
-        handle,
-        obs.point_id,
-        center,
-        target_frame,
-        ets[0],
-        ets[-1],
-        "0",
-        polynomial_degree,
-        len(ets),
-        obs.states.tolist(),
-        ets.tolist(),
-    )
-    spice.spkcls(handle)
+    create_custom_point_kernel(obs, center, custom_kernel_dir, target_frame)
     spice.kclear()
 
 
@@ -230,7 +197,7 @@ def get_moon_datas_from_moon(
     """
     if custom_kernel_path == None:
         custom_kernel_path = kernels_path
-    id_code = 301100
+    id_code = MOON_ID_CODE * 1000 + 100
     utc_times = dt_to_str(times)
     if len(utc_times) == 0:
         return []
@@ -247,7 +214,7 @@ def get_moon_datas_from_moon(
         source_frame,
         target_frame,
     )
-    return get_moon_datas_id(
+    return get_moon_datas_body_ellipsoid_id(
         utc_times,
         kernels_path,
         id_code,

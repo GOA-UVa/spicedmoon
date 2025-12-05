@@ -1,3 +1,9 @@
+"""
+Main low-level SPICE-based lunar geometry routines.
+
+This module implements the internal computational engine used by the
+public-facing functions.
+"""
 import os
 from typing import List
 
@@ -17,7 +23,7 @@ from .basics import get_radii_moon, furnsh_safer
 from .heliac import get_sun_moon_data
 
 
-def get_moon_data(
+def get_moon_data_body_ellipsoid(
     utc_time: str,
     observer_name: str = DEFAULT_OBSERVER_NAME,
     observer_frame: str = DEFAULT_OBSERVER_FRAME,
@@ -27,7 +33,12 @@ def get_moon_data(
     colat: float = 0,
     ignore_bodvrd: bool = True,
 ) -> MoonData:
-    """Calculation of the moon data for the given utc_time for the loaded observer
+    """
+    Calculation of the moon data for the loaded defined observer body, using ellipsoidal geometries.
+    - Uses high-level SPICE geometry (subpnt, recpgr, phaseq).
+    - Assumes an ellipsoidal Moon.
+    - Observer is a named SPICE body.
+    - Computes azimuth, zenith, sub-observer selenographic coords, distances, signed phase.
 
     Parameters
     ----------
@@ -136,7 +147,7 @@ def get_moon_data(
     return moon_data
 
 
-def get_moon_datas_id(
+def get_moon_datas_body_ellipsoid_id(
     utc_times: List[str],
     kernels_path: str,
     observer_id: int,
@@ -148,9 +159,14 @@ def get_moon_datas_id(
     earth_as_zenith_observer: bool = False,
     ignore_bodvrd: bool = True,
 ) -> List[MoonData]:
-    """Calculation of needed MoonDatas from SPICE toolbox
+    """
+    Calculation of the moon data for a observer body defined in a custom kernel file, using ellipsoidal geometries.
+    - Uses high-level SPICE geometry (subpnt, recpgr, phaseq).
+    - Assumes an ellipsoidal Moon.
+    - Observer is a named SPICE body.
+    - Computes azimuth, zenith, sub-observer selenographic coords, distances, signed phase.
 
-    Moon phase angle, selenographic coordinates and distance from observer point to moon.
+    Calculate moon phase angle, selenographic coordinates and distance from observer point to moon.
     Selenographic longitude and distance from sun to moon.
 
     Parameters
@@ -201,7 +217,7 @@ def get_moon_datas_id(
     colat = 90 - (latitude % 90)
     lon = longitude % 180
     for utc_time in utc_times:
-        new_md = get_moon_data(
+        new_md = get_moon_data_body_ellipsoid(
             utc_time,
             observer_name,
             observer_frame,

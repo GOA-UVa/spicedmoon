@@ -2,13 +2,17 @@ import os
 from typing import List, Union
 from datetime import datetime
 
-import numpy as np
 import spiceypy as spice
 
 from .types import MoonData
-from .basics import Location, furnsh_safer, dt_to_str, remove_custom_kernel_file
-from .core import get_moon_datas_id
-from .constants import BASIC_KERNELS, MOON_KERNELS, CUSTOM_KERNEL_NAME
+from .basics import furnsh_safer, dt_to_str
+from .core import get_moon_datas_body_ellipsoid_id
+from .constants import BASIC_KERNELS, MOON_KERNELS
+from .customkernel import (
+    Location,
+    create_custom_point_kernel,
+    remove_custom_kernel_file,
+)
 
 EARTH_ID_CODE = 399
 
@@ -21,6 +25,10 @@ class _EarthLocation(Location):
     ----------
     point_id : int
         ID code that will be associated with the point on Earth's surface
+    polynomial_degree: int
+        Degree of the lagrange polynomials that used to interpolate the states.
+    ets: np.ndarray of float64
+        Array of TDB seconds from J2000 (et dates) of which the data will be taken.
     states : np.ndarray of float64
         Array of geometric states of body relative to center
     """
@@ -28,11 +36,10 @@ class _EarthLocation(Location):
     def __init__(
         self,
         point_id: int,
+        utc_times: List[str],
         lat: float,
         lon: float,
         altitude: float,
-        ets: np.ndarray,
-        delta_t: float,
         source_frame: str,
         target_frame: str,
     ):
@@ -41,16 +48,14 @@ class _EarthLocation(Location):
         ----------
         point_id : int
             ID code that will be associated with the point on Earth's surface
+        utc_times : list of str
+            Times at which the lunar data will be calculated, in a valid UTC DateTime format
         lat : float
             Geographic latitude of the observer point
         lon : float
             Geographic longitude of the observer point
         altitude : float
             Altitude over the sea level in meters.
-        ets : np.ndarray
-            Array of TDB seconds from J2000 (et dates) of which the data will be taken
-        delta_t : float
-            TDB seconds between states
         source_frame : str
             Name of the frame to transform from.
         target_frame : str
@@ -60,14 +65,13 @@ class _EarthLocation(Location):
         pol_rad = 6356.7519  # Earth polar radius
         super().__init__(
             point_id,
+            utc_times,
             "EARTH",
             lat,
             lon,
             altitude,
             eq_rad,
             pol_rad,
-            ets,
-            delta_t,
             source_frame,
             target_frame,
         )
@@ -113,47 +117,11 @@ def _create_earth_point_kernel(
     for kernel in kernels:
         k_path = os.path.join(kernels_path, kernel)
         furnsh_safer(k_path)
-
-    polynomial_degree = 5
-    # Degree of the lagrange polynomials that will be used to interpolate the states
-    delta_t = 1  # TDB seconds between states. Arbitrary.
-    min_states_polynomial = polynomial_degree + 1
-    # Min # states that are required to define a polynomial of that degree
-    ets = np.array([])
-    left_states = int(min_states_polynomial / 2)
-    right_states = left_states + min_states_polynomial % 2
-    for utc_time in utc_times:
-        et0 = spice.str2et(utc_time)
-        etprev = et0 - delta_t * left_states
-        etf = et0 + delta_t * right_states
-        ets_t = np.arange(etprev, etf, delta_t)
-        for et_t in ets_t:
-            if et_t not in ets:
-                index = np.searchsorted(ets, et_t)
-                ets = np.insert(ets, index, et_t)
-
     obs = _EarthLocation(
-        id_code, lat, lon, altitude, ets, delta_t, source_frame, target_frame
+        id_code, utc_times, lat, lon, altitude, source_frame, target_frame
     )
-
-    custom_kernel_path = os.path.join(custom_kernel_dir, CUSTOM_KERNEL_NAME)
-    handle = spice.spkopn(custom_kernel_path, "SPK_file", 0)
-
     center = EARTH_ID_CODE
-    spice.spkw09(
-        handle,
-        obs.point_id,
-        center,
-        target_frame,
-        ets[0],
-        ets[-1],
-        "0",
-        polynomial_degree,
-        len(ets),
-        obs.states.tolist(),
-        ets.tolist(),
-    )
-    spice.spkcls(handle)
+    create_custom_point_kernel(obs, center, custom_kernel_dir, target_frame)
     spice.kclear()
 
 
@@ -217,7 +185,7 @@ def get_moon_datas(
     """
     if custom_kernel_path == None:
         custom_kernel_path = kernels_path
-    id_code = 399100
+    id_code = EARTH_ID_CODE * 1000 + 100
     utc_times = dt_to_str(times)
     if len(utc_times) == 0:
         return []
@@ -233,7 +201,7 @@ def get_moon_datas(
         source_frame,
         target_frame,
     )
-    return get_moon_datas_id(
+    return get_moon_datas_body_ellipsoid_id(
         utc_times,
         kernels_path,
         id_code,
