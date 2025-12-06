@@ -19,8 +19,50 @@ from .constants import (
     MOON_KERNELS,
 )
 from .types import MoonData
-from .basics import get_radii_moon, furnsh_safer
+from .basics import get_radii_moon, furnsh_safer, get_colat_deg
 from .heliac import get_sun_moon_data
+
+
+def get_zn_az(
+    state_pos_zenith: np.ndarray,
+    correct_rotating: bool = False,
+    longitude: float = None,
+    colat: float = None,
+):
+    """
+    Calculate the zenith and azimuth for a position of a target body, relative to an observing body
+
+    Parameters
+    ----------
+    state_pos_zenith: np.ndarray
+        The position (3 first elements of state) of a target body relative to an observing body
+    correct_rotating : bool
+        Correct the coordinates rotating them into the local ENU orientation.
+    longitude : float
+        Geographic longitude of the observer point. Needed only if correcting coordinates.
+    colat : float
+        Geographic colatitude of the observer point. Needed only if correcting coordinates.
+
+    Returns
+    -------
+    zenith: float
+        Zenith of the target body in decimal degrees.
+    azimuth: float
+        Azimuth of the target body in decimal degrees.
+    """
+    if correct_rotating:
+        if longitude is None or colat is None:
+            raise ValueError(
+                "longitude and colat must be provided when correct_rotating=True"
+            )
+        lon_rad = (longitude + 180) * spice.rpd()
+        colat_rad = colat * spice.rpd()
+        bf2tp = spice.eul2m(-lon_rad, -colat_rad, 0, 3, 2, 3)
+        state_pos_zenith = spice.mtxv(bf2tp, state_pos_zenith)
+    _, longi, lati = spice.reclat(state_pos_zenith)
+    zenith = 90.0 - lati * spice.dpr()
+    azimuth = 180 - longi * spice.dpr()
+    return zenith, azimuth
 
 
 def get_moon_data_body_ellipsoid(
@@ -29,8 +71,8 @@ def get_moon_data_body_ellipsoid(
     observer_frame: str = DEFAULT_OBSERVER_FRAME,
     observer_zenith_name: str = DEFAULT_OBSERVER_ZENITH_NAME,
     correct_zenith_azimuth: bool = False,
-    longitude: float = 0,
-    colat: float = 0,
+    longitude: float = None,
+    colat: float = None,
     ignore_bodvrd: bool = True,
 ) -> MoonData:
     """
@@ -79,16 +121,7 @@ def get_moon_data_body_ellipsoid(
         "MOON", et_date, observer_frame, "NONE", observer_zenith_name
     )
     rectan_zenith = np.split(state_zenith, 2)[0]
-    if correct_zenith_azimuth:
-        lon_rad = (longitude + 180) * spice.rpd()
-        colat_rad = colat * spice.rpd()
-        bf2tp = spice.eul2m(-lon_rad, -colat_rad, 0, 3, 2, 3)
-        rectan_zenith = spice.mtxv(bf2tp, rectan_zenith)
-
-    _, longi, lati = spice.reclat(rectan_zenith)
-
-    zenith = 90.0 - lati * spice.dpr()
-    azimuth = 180 - longi * spice.dpr()
+    zenith, azimuth = get_zn_az(rectan_zenith, correct_zenith_azimuth, longitude, colat)
 
     # Calculate moon phase angle
     spoint, _, _ = spice.subpnt(
@@ -214,7 +247,7 @@ def get_moon_datas_body_ellipsoid_id(
     else:
         zenith_observer = observer_name
     moon_datas = []
-    colat = 90 - (latitude % 90)
+    colat = get_colat_deg(latitude)
     lon = longitude % 180
     for utc_time in utc_times:
         new_md = get_moon_data_body_ellipsoid(

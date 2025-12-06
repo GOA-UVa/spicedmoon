@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `dt_to_str` throws a runtime warning if any `datetime` is timezone-naive.
+- Direct calculation can now obtain zenith and azimuth values, without using custom intermediate kernel.
 
 ### Changed
 - Changed project license from MIT to LGPL.

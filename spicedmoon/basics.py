@@ -94,3 +94,7 @@ def get_radii_moon(ignore_bodvrd: bool = True) -> Tuple[float, float]:
         _, radii_moon = spice.bodvrd("MOON", "RADII", 3)
         eq_rad, pol_rad = radii_moon[0], radii_moon[2]
     return eq_rad, pol_rad
+
+
+def get_colat_deg(lat: float) -> float:
+    return 90 - (lat % 90)

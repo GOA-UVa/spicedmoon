@@ -10,11 +10,24 @@ It exports the following functions:
     * get_sun_moon_datas - Calculates solar selenographic coordinates.
     * get_moon_datas_from_moon - Calculates needed MoonData from SPICE toolbox from selenographic coordinates
 """
+from typing import List, Tuple
 from .geoselenic import (
     get_moon_datas_from_extra_kernels,
-    get_moon_datas_xyzs_no_zenith_azimuth,
+    get_moon_datas_xyzs,
 )
 from .geotic import get_moon_datas
 from .selenic import get_moon_datas_from_moon
 from .heliac import get_sun_moon_datas
 from .types import MoonData, MoonSunData
+
+
+def get_moon_datas_xyzs_no_zenith_azimuth(
+    xyzs: List[Tuple[float, float, float]],
+    dts: List[str],
+    kernels_path: str,
+    source_frame: str = "J2000",
+    target_frame: str = "MOON_ME",
+):
+    get_moon_datas_xyzs(
+        xyzs, dts, kernels_path, source_frame, target_frame, "ITRF93", False
+    )

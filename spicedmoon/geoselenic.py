@@ -5,10 +5,11 @@ from datetime import datetime
 import numpy as np
 import spiceypy as spice
 
-from .basics import furnsh_safer, dt_to_str
-from .core import get_moon_data_body_ellipsoid
+from .basics import furnsh_safer, dt_to_str, get_colat_deg, get_radii_moon
+from .core import get_moon_data_body_ellipsoid, get_zn_az
 from .types import MoonData
 from .constants import BASIC_KERNELS, MOON_KERNELS
+from .coordinates import to_planetographic_multiple
 
 
 def get_moon_datas_from_extra_kernels(
@@ -83,19 +84,20 @@ def get_moon_datas_from_extra_kernels(
     return moon_datas
 
 
-def _get_moon_datas_xyzs_no_zenith_azimuth(
-    xyz: Tuple[float, float, float], et: float, source_frame: str, target_frame: str
-) -> Tuple[float, float, float, float, float, float, float, float]:
+def _get_moon_datas_xyzs(
+    xyz: Tuple[float, float, float],
+    et: float,
+    source_frame: str,
+    target_frame: str,
+    angular_frame: str,
+    intercept_ellipsoid: bool,
+) -> MoonData:
     sun_pos_moonref, lightime = spice.spkpos("SUN", et, target_frame, "NONE", "MOON")
     sun_pos_satref, lighttime = spice.spkpos("SUN", et, source_frame, "NONE", "EARTH")
+    obs_body = "EARTH"
     if "MOON" in source_frame and "MOON" in target_frame:
-        moon_pos_satref, lightime = spice.spkpos(
-            "MOON", et, source_frame, "NONE", "MOON"
-        )
-    else:
-        moon_pos_satref, lightime = spice.spkpos(
-            "MOON", et, source_frame, "NONE", "EARTH"
-        )
+        obs_body = "MOON"
+    moon_pos_satref, lightime = spice.spkpos("MOON", et, source_frame, "NONE", obs_body)
     rotation = spice.pxform(source_frame, target_frame, et)
     # set moon center as zero point
     sat_pos_translate = np.zeros(3)
@@ -120,23 +122,48 @@ def _get_moon_datas_xyzs_no_zenith_azimuth(
     )
     dist_sun_moon_au = spice.convrt(distance_sun_moon, "KM", "AU")
     # sat
-    sel_lon_sat = np.arctan2(sat_pos_moonref[1], sat_pos_moonref[0]) * 180.0 / np.pi
-    sel_lat_sat = (
-        np.arctan2(
-            sat_pos_moonref[2],
-            np.sqrt(
-                sat_pos_moonref[0] * sat_pos_moonref[0]
-                + sat_pos_moonref[1] * sat_pos_moonref[1]
-            ),
+    if intercept_ellipsoid:
+        x, y, z = sat_pos_moonref
+        m_eq_rad, m_pol_rad = get_radii_moon(ignore_bodvrd=True)
+        flattening = (m_eq_rad - m_pol_rad) / m_eq_rad
+        # Intersection ray center-observer with the ellipsoid
+        k = 1.0 / np.sqrt(
+            (x * x + y * y) / (m_eq_rad**2) + (z * z) / (m_pol_rad**2)
         )
-        * 180.0
-        / np.pi
-    )
+        spoint = np.array([k * x, k * y, k * z])
+        sel_lon_sat, sel_lat_sat, _ = spice.recpgr("MOON", spoint, m_eq_rad, flattening)
+        sel_lon_sat, sel_lat_sat = np.array([sel_lon_sat, sel_lat_sat]) * 180.0 / np.pi
+    else:
+        sel_lon_sat = np.arctan2(sat_pos_moonref[1], sat_pos_moonref[0]) * 180.0 / np.pi
+        sel_lat_sat = (
+            np.arctan2(
+                sat_pos_moonref[2],
+                np.sqrt(
+                    sat_pos_moonref[0] * sat_pos_moonref[0]
+                    + sat_pos_moonref[1] * sat_pos_moonref[1]
+                ),
+            )
+            * 180.0
+            / np.pi
+        )
     distance_sat_moon = np.sqrt(
         sat_pos_moonref[0] * sat_pos_moonref[0]
         + sat_pos_moonref[1] * sat_pos_moonref[1]
         + sat_pos_moonref[2] * sat_pos_moonref[2]
     )
+    # zn az
+    ang_rotation = spice.pxform(source_frame, angular_frame, et)
+    sat_pos_angref = spice.mxv(ang_rotation, sat_pos_translate)
+    plt = to_planetographic_multiple(
+        [xyz * 1000],
+        obs_body,
+        [spice.et2utc(et, "ISOC", 0)],
+        source_frame,
+        angular_frame,
+    )
+    colat = get_colat_deg(plt[0][0])
+    lon = plt[0][1] % 180
+    zn, az = get_zn_az(-sat_pos_angref, True, lon, colat)
     # phase
     phase = (180.0 / np.pi) * np.arccos(
         (
@@ -146,7 +173,7 @@ def _get_moon_datas_xyzs_no_zenith_azimuth(
         )
         / (distance_sat_moon * distance_sun_moon)
     )
-    return (
+    return MoonData(
         dist_sun_moon_au,
         distance_sun_moon,
         distance_sat_moon,
@@ -155,17 +182,21 @@ def _get_moon_datas_xyzs_no_zenith_azimuth(
         sel_lat_sat,
         sel_lon_sat,
         phase,
+        az,
+        zn,
     )
 
 
-def get_moon_datas_xyzs_no_zenith_azimuth(
+def get_moon_datas_xyzs(
     xyzs: List[Tuple[float, float, float]],
     dts: List[str],
     kernels_path: str,
     source_frame: str = "J2000",
     target_frame: str = "MOON_ME",
+    angular_frame: str = "ITRF93",
+    intercept_ellipsoid: bool = True,
 ) -> List[MoonData]:
-    """Calculation of needed Moon data from SPICE toolbox, without the zenith nor azimuth, in a faster way.
+    """Calculation of needed Moon data from SPICE toolbox, without using intermediate custom kernels.
 
     xyzs: list of tuple of 3 floats
         Observer rectangular positions
@@ -181,11 +212,17 @@ def get_moon_datas_xyzs_no_zenith_azimuth(
         Name of the EARTH or MOON frame to transform the coordinates from.
     target_frame : str
         Name of the MOON frame which the location point will be referencing.
-
+    intercept_ellipsoid: bool
+        Controls how the observer selenographic latitude and longitude are defined.
+        If True, they correspond to the sub-observer point on the lunar surface,
+        computed by intersecting the observer direction with the Moon reference
+        ellipsoid (SPICE "INTERCEPT/ELLIPSOID" behavior).
+        If False, they correspond to the angular direction of the observer as seen
+        from the Moon center, without intersecting the lunar surface.
     Returns
     -------
     list of MoonData
-        List of the calculated MoonDatas, but without the zenith and azimuth values
+        List of the calculated MoonDatas
     """
     kernels = BASIC_KERNELS + MOON_KERNELS
     for kernel in kernels:
@@ -194,35 +231,15 @@ def get_moon_datas_xyzs_no_zenith_azimuth(
     mds = []
     for xyz, dt in zip(xyzs, dts):
         et = spice.str2et(dt)
-        (
-            dist_sun_moon_au,
-            distance_sun_moon,
-            distance_sat_moon,
-            sel_lon_sun,
-            sel_lat_sun,
-            sel_lat_sat,
-            sel_lon_sat,
-            phase,
-        ) = _get_moon_datas_xyzs_no_zenith_azimuth(xyz, et, source_frame, target_frame)
-
+        md = _get_moon_datas_xyzs(
+            xyz, et, source_frame, target_frame, angular_frame, intercept_ellipsoid
+        )
         et_2 = et + 1
-        _, _, _, _, _, _, _, phase2 = _get_moon_datas_xyzs_no_zenith_azimuth(
-            xyz, et_2, source_frame, target_frame
+        md2 = _get_moon_datas_xyzs(
+            xyz, et_2, source_frame, target_frame, angular_frame, intercept_ellipsoid
         )
-        if phase2 < phase:
-            phase = -phase
-        md = MoonData(
-            dist_sun_moon_au,
-            distance_sun_moon,
-            distance_sat_moon,
-            sel_lon_sun,
-            sel_lat_sun,
-            sel_lat_sat,
-            sel_lon_sat,
-            phase,
-            None,
-            None,
-        )
+        if md2.mpa_deg < md.mpa_deg:
+            md.mpa_deg = -md.mpa_deg
         mds.append(md)
     spice.kclear()
     return mds

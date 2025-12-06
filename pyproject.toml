@@ -49,6 +49,9 @@ Homepage = "https://github.com/GOA-UVa/spicedmoon"
 Repository = "https://github.com/GOA-UVa/spicedmoon.git"
 Issues = "https://github.com/GOA-UVa/spicedmoon/issues"
 
+[tool.setuptools.packages.find]
+where = [""]
+include = ["spicedmoon*"]
 
 [tool.setuptools_scm]
 root = "."
