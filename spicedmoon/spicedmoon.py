@@ -11,12 +11,13 @@ It exports the following functions:
     * get_moon_datas_from_moon - Calculates needed MoonData from SPICE toolbox from selenographic coordinates
 """
 from typing import List, Tuple
+
+from .body.preexisting import get_moon_datas_from_extra_kernels
 from .geoselenic import (
-    get_moon_datas_from_extra_kernels,
     get_moon_datas_xyzs,
 )
-from .geotic import get_moon_datas
-from .selenic import get_moon_datas_from_moon
+from .body.geotic import get_moon_datas
+from .body.selenic import get_moon_datas_from_moon
 from .heliac import get_sun_moon_datas
 from .types import MoonData, MoonSunData
 

@@ -7,7 +7,7 @@ from typing import List
 import numpy as np
 import spiceypy as spice
 
-from .constants import CUSTOM_KERNEL_NAME
+from ..constants import CUSTOM_KERNEL_NAME
 
 
 def _calculate_ets(

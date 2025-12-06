@@ -4,29 +4,27 @@ from datetime import datetime
 
 import spiceypy as spice
 
-from .basics import (
-    furnsh_safer,
-    dt_to_str,
-    get_radii_moon,
-)
+from ..types import MoonData
+from ..basics import furnsh_safer, dt_to_str
 from .core import get_moon_datas_body_ellipsoid_id
-from .constants import MOON_ID_CODE, BASIC_KERNELS, MOON_KERNELS
-from .types import MoonData
+from ..constants import BASIC_KERNELS, MOON_KERNELS
 from .customkernel import (
     Location,
     create_custom_point_kernel,
     remove_custom_kernel_file,
 )
 
+EARTH_ID_CODE = 399
 
-class _MoonLocation(Location):
+
+class _EarthLocation(Location):
     """
-    Data for the creation of an observer point on Moon's surface
+    Data for the creation of an observer point on Earth's surface
 
     Attributes
     ----------
     point_id : int
-        ID code that will be associated with the point on Moon's surface
+        ID code that will be associated with the point on Earth's surface
     polynomial_degree: int
         Degree of the lagrange polynomials that used to interpolate the states.
     ets: np.ndarray of float64
@@ -44,36 +42,31 @@ class _MoonLocation(Location):
         altitude: float,
         source_frame: str,
         target_frame: str,
-        ignore_bodvrd: bool = True,
     ):
         """
         Parameters
         ----------
         point_id : int
-            ID code that will be associated with the point on Moon's surface
+            ID code that will be associated with the point on Earth's surface
+        utc_times : list of str
+            Times at which the lunar data will be calculated, in a valid UTC DateTime format
         lat : float
             Geographic latitude of the observer point
         lon : float
             Geographic longitude of the observer point
         altitude : float
             Altitude over the sea level in meters.
-        ets : np.ndarray
-            Array of TDB seconds from J2000 (et dates) of which the data will be taken
-        delta_t : float
-            TDB seconds between states
         source_frame : str
             Name of the frame to transform from.
         target_frame : str
             Name of the frame which the location will be referencing.
-        ignore_bodvrd : bool
-            Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
-            1738.1 and 1736
         """
-        eq_rad, pol_rad = get_radii_moon(ignore_bodvrd)
+        eq_rad = 6378.1366  # Earth equatorial radius
+        pol_rad = 6356.7519  # Earth polar radius
         super().__init__(
             point_id,
             utc_times,
-            "MOON",
+            "EARTH",
             lat,
             lon,
             altitude,
@@ -84,7 +77,7 @@ class _MoonLocation(Location):
         )
 
 
-def _create_moon_point_kernel(
+def _create_earth_point_kernel(
     utc_times: List[str],
     kernels_path: str,
     lat: int,
@@ -92,9 +85,8 @@ def _create_moon_point_kernel(
     altitude: float,
     id_code: int,
     custom_kernel_dir: str,
-    ignore_bodvrd: bool = True,
-    source_frame: str = "MOON_ME",
-    target_frame: str = "MOON_ME",
+    source_frame: str = "ITRF93",
+    target_frame: str = "ITRF93",
 ) -> None:
     """Creates a SPK custom kernel file containing the data of a point on Earth's surface
 
@@ -105,54 +97,47 @@ def _create_moon_point_kernel(
     kernels_path : str
         Path where the SPICE kernels are stored
     lat : float
-        Selenographic latitude (in degrees) of the location.
+        Geographic latitude (in degrees) of the location.
     lon : float
-        Selenographic longitude (in degrees) of the location.
+        Geographic longitude (in degrees) of the location.
     altitude : float
         Altitude over the sea level in meters.
     id_code : int
-        ID code that will be associated with the point on Moon's surface
+        ID code that will be associated with the point on Earth's surface
     custom_kernel_dir: str
         Path where the writable custom kernel custom.bsp will be stored.
-    ignore_bodvrd : bool
-        Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
-        1738.1 and 1736
     source_frame : str
         Name of the frame to transform the coordinates from.
     target_frame : str
         Name of the frame which the location point will be referencing.
     """
-    kernels = BASIC_KERNELS + MOON_KERNELS
+    kernels = BASIC_KERNELS
+    if "MOON" in source_frame or "MOON" in target_frame:
+        kernels += MOON_KERNELS
     for kernel in kernels:
         k_path = os.path.join(kernels_path, kernel)
         furnsh_safer(k_path)
-    obs = _MoonLocation(
-        id_code,
-        utc_times,
-        lat,
-        lon,
-        altitude,
-        source_frame,
-        target_frame,
-        ignore_bodvrd,
+    obs = _EarthLocation(
+        id_code, utc_times, lat, lon, altitude, source_frame, target_frame
     )
-    center = MOON_ID_CODE
+    center = EARTH_ID_CODE
     create_custom_point_kernel(obs, center, custom_kernel_dir, target_frame)
     spice.kclear()
 
 
-def get_moon_datas_from_moon(
+def get_moon_datas(
     lat: float,
     lon: float,
     altitude: float,
     times: Union[List[str], List[datetime]],
     kernels_path: str,
     correct_zenith_azimuth: bool = True,
-    observer_frame: str = "MOON_ME",
+    observer_frame: str = "ITRF93",
+    earth_as_zenith_observer: bool = False,
     custom_kernel_path: str = None,
     ignore_bodvrd: bool = True,
-    source_frame: str = "MOON_ME",
-    target_frame: str = "MOON_ME",
+    source_frame: str = "ITRF93",
+    target_frame: str = "ITRF93",
 ) -> List[MoonData]:
     """Calculation of needed Moon data from SPICE toolbox
 
@@ -162,9 +147,9 @@ def get_moon_datas_from_moon(
     Parameters
     ----------
     lat : float
-        Selenographic latitude (in degrees) of the location.
+        Geographic latitude (in degrees) of the location.
     lon : float
-        Selenographic longitude (in degrees) of the location.
+        Geographic longitude (in degrees) of the location.
     altitude : float
         Altitude over the sea level in meters.
     times : list of str | list of datetime
@@ -180,6 +165,9 @@ def get_moon_datas_from_moon(
         corrected rotating them into the correct location.
     observer_frame : str
         Observer frame that will be used in the calculations of the azimuth and zenith.
+    earth_as_zenith_observer : bool
+        If True the Earth will be used as the observer for the zenith and azimuth calculation.
+        Otherwise it will be the actual observer. By default is False.
     custom_kernel_path: str
         Path of the kernel custom.bsp that will be edited by the library, not only read.
         If none, it will be the same as kernels_path.
@@ -197,12 +185,12 @@ def get_moon_datas_from_moon(
     """
     if custom_kernel_path == None:
         custom_kernel_path = kernels_path
-    id_code = MOON_ID_CODE * 1000 + 100
+    id_code = EARTH_ID_CODE * 1000 + 100
     utc_times = dt_to_str(times)
     if len(utc_times) == 0:
         return []
     remove_custom_kernel_file(custom_kernel_path)
-    _create_moon_point_kernel(
+    _create_earth_point_kernel(
         utc_times,
         kernels_path,
         lat,
@@ -210,7 +198,6 @@ def get_moon_datas_from_moon(
         altitude,
         id_code,
         custom_kernel_path,
-        ignore_bodvrd,
         source_frame,
         target_frame,
     )
@@ -223,6 +210,6 @@ def get_moon_datas_from_moon(
         correct_zenith_azimuth,
         lat,
         lon,
-        False,
+        earth_as_zenith_observer,
         ignore_bodvrd,
     )
