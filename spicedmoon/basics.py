@@ -1,6 +1,7 @@
 """
 Common basic functions that help and improve in SPICE usage.
 """
+import os
 import time
 from typing import List, Union, Tuple
 from datetime import datetime, timezone

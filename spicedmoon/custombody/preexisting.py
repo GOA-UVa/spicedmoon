@@ -1,3 +1,6 @@
+"""
+Calculate lunar geometries for a  point already existing in an extra custom kernel file.
+"""
 import os
 from datetime import datetime
 from typing import List, Union
@@ -5,7 +8,7 @@ from typing import List, Union
 import spiceypy as spice
 
 from ..basics import dt_to_str, furnsh_safer
-from ..body.core import get_moon_data_body_ellipsoid
+from ..custombody.core import get_moon_data_body_ellipsoid
 from ..constants import BASIC_KERNELS, MOON_KERNELS
 from ..types import MoonData
 

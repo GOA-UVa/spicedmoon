@@ -1,3 +1,6 @@
+"""
+Compute angular coordinates like zenith and azimuth, and related calculations.
+"""
 import numpy as np
 import spiceypy as spice
 
@@ -45,4 +48,17 @@ def get_zn_az(
 
 
 def get_colat_deg(lat: float) -> float:
+    """
+    Convert the latitude into colatitude.
+
+    Parameters
+    ----------
+    lat: float
+        Latitude in decimal degrees
+
+    Returns
+    -------
+    colat: float
+        Colatitude associated to `lat`.
+    """
     return 90 - (lat % 90)

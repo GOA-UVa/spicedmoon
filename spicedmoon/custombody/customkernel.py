@@ -1,5 +1,5 @@
 """
-Create and remove the custom kernel used in some `spicedmoon` calculations.
+Create and remove the custom kernel used in some `spicedmoon.custombody` calculations.
 """
 import os
 from typing import List

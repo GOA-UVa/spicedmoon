@@ -1,5 +1,5 @@
 """
-Solar related products. Maybe calculation of solar selenographic coordinates.
+Solar related geometries.
 """
 import os
 from typing import Union, List
