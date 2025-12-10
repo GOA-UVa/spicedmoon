@@ -1,18 +1,21 @@
+"""
+Compute main lunar geometries
+"""
 import os
 from typing import List, Tuple
 
 import numpy as np
 import spiceypy as spice
 
-from .angular import get_colat_deg, get_zn_az
+from .angular import get_zn_az
 
 from .basics import furnsh_safer, get_radii_moon
 from .types import MoonData
 from .constants import BASIC_KERNELS, MOON_KERNELS
-from .coordinates import to_planetographic_multiple
+from .coordinates import to_planetographic_multiple, to_rectangular_multiple
 
 
-def _get_moon_datas_xyzs(
+def _get_moon_data_xyzs(
     xyz: Tuple[float, float, float],
     et: float,
     source_frame: str,
@@ -113,6 +116,30 @@ def _get_moon_datas_xyzs(
     )
 
 
+def _get_moon_datas_xyzs(
+    xyzs: List[Tuple[float, float, float]],
+    dts: List[str],
+    source_frame: str,
+    target_frame: str,
+    angular_frame: str,
+    intercept_ellipsoid: bool,
+) -> List[MoonData]:
+    mds = []
+    for xyz, dt in zip(xyzs, dts):
+        et = spice.str2et(dt)
+        md = _get_moon_data_xyzs(
+            xyz, et, source_frame, target_frame, angular_frame, intercept_ellipsoid
+        )
+        et_2 = et + 1
+        md2 = _get_moon_data_xyzs(
+            xyz, et_2, source_frame, target_frame, angular_frame, intercept_ellipsoid
+        )
+        if md2.mpa_deg < md.mpa_deg:
+            md.mpa_deg = -md.mpa_deg
+        mds.append(md)
+    return mds
+
+
 def get_moon_datas_xyzs(
     xyzs: List[Tuple[float, float, float]],
     dts: List[str],
@@ -125,7 +152,7 @@ def get_moon_datas_xyzs(
     """Calculation of needed Moon data from SPICE toolbox, without using intermediate custom kernels.
 
     xyzs: list of tuple of 3 floats
-        Observer rectangular positions
+        Observer rectangular positions in km.
     dts : list of str | list of datetime
         Times at which the lunar data will be calculated.
         If they are str, they must be in a valid UTC format allowed by SPICE, such as
@@ -138,6 +165,8 @@ def get_moon_datas_xyzs(
         Name of the EARTH or MOON frame to transform the coordinates from.
     target_frame : str
         Name of the MOON frame which the location point will be referencing.
+    angular : str
+        Name of the EARTH frame which the calculated zenith and azimuth point will be referencing.
     intercept_ellipsoid: bool
         Controls how the observer selenographic latitude and longitude are defined.
         If True, they correspond to the sub-observer point on the lunar surface,
@@ -154,18 +183,63 @@ def get_moon_datas_xyzs(
     for kernel in kernels:
         k_path = os.path.join(kernels_path, kernel)
         furnsh_safer(k_path)
-    mds = []
-    for xyz, dt in zip(xyzs, dts):
-        et = spice.str2et(dt)
-        md = _get_moon_datas_xyzs(
-            xyz, et, source_frame, target_frame, angular_frame, intercept_ellipsoid
-        )
-        et_2 = et + 1
-        md2 = _get_moon_datas_xyzs(
-            xyz, et_2, source_frame, target_frame, angular_frame, intercept_ellipsoid
-        )
-        if md2.mpa_deg < md.mpa_deg:
-            md.mpa_deg = -md.mpa_deg
-        mds.append(md)
+    mds = _get_moon_datas_xyzs(xyzs, dts, source_frame, target_frame, angular_frame, intercept_ellipsoid)
+    spice.kclear()
+    return mds
+
+
+def get_moon_datas_llhs(
+    llhs: List[Tuple[float, float, float]],
+    dts: List[str],
+    kernels_path: str,
+    body: str = "EARTH",
+    source_planetographic_frame: str = "ITRF93",
+    source_rectangular_frame: str = "J2000",
+    target_frame: str = "MOON_ME",
+    angular_frame: str = "ITRF93",
+    intercept_ellipsoid: bool = True,
+) -> List[MoonData]:
+    """Calculation of needed Moon data from SPICE toolbox, without using intermediate custom kernels.
+    Accepts planetographic coordinates, that will be internally transformed into rectangular ones.
+
+    llhs: list of tuple of 3 floats
+        Observer geometrical positions in decimal degrees and km.
+    dts : list of str | list of datetime
+        Times at which the lunar data will be calculated.
+        If they are str, they must be in a valid UTC format allowed by SPICE, such as
+        %Y-%m-%d %H:%M:%S.
+        If they are datetimes they must be timezone aware, or they will be understood
+        as computer local time.
+    kernels_path : str
+        Path where the SPICE kernels are stored
+    body: str
+        Body the planetographic coordinates reference.
+    source_planetographic_frame : str
+        Name of the EARTH or MOON frame the planetographic coordinates are.
+    source_rectangular_frame: str
+        Name of the frame the rectangular coordinates that reference the body will be.
+    target_frame : str
+        Name of the MOON frame which the location point will be referencing.
+    angular : str
+        Name of the EARTH frame which the calculated zenith and azimuth point will be referencing.
+    intercept_ellipsoid: bool
+        Controls how the observer selenographic latitude and longitude are defined.
+        If True, they correspond to the sub-observer point on the lunar surface,
+        computed by intersecting the observer direction with the Moon reference
+        ellipsoid (SPICE "INTERCEPT/ELLIPSOID" behavior).
+        If False, they correspond to the angular direction of the observer as seen
+        from the Moon center, without intersecting the lunar surface.
+    Returns
+    -------
+    list of MoonData
+        List of the calculated MoonDatas
+    """
+    kernels = BASIC_KERNELS + MOON_KERNELS
+    for kernel in kernels:
+        k_path = os.path.join(kernels_path, kernel)
+        furnsh_safer(k_path)
+    ets = spice.str2et(dts)
+    xyzs = [to_rectangular_multiple(llh, body, [et], source_planetographic_frame, source_rectangular_frame) for llh, et in zip(llhs, ets)]
+    mds = _get_moon_datas_xyzs(xyzs, dts, source_rectangular_frame, target_frame, angular_frame, intercept_ellipsoid)
     spice.kclear()
     return mds

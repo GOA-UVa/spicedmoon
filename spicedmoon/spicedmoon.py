@@ -13,7 +13,7 @@ It exports the following functions:
 from typing import List, Tuple
 
 from .custombody.preexisting import get_moon_datas_from_extra_kernels
-from .geoselenic import (
+from .geometry import (
     get_moon_datas_xyzs,
 )
 from .custombody.geotic import get_moon_datas

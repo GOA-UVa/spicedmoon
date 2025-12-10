@@ -2,7 +2,7 @@
 Calculation of observer-lunar geometries using NASA's SPICE toolbox.
 """
 from .custombody.preexisting import get_moon_datas_from_extra_kernels
-from .geoselenic import (
+from .geometry import (
     get_moon_datas_xyzs,
 )
 from .custombody.geotic import get_moon_datas
