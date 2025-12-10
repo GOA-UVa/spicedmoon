@@ -92,7 +92,9 @@ def _get_moon_data_xyzs(
         source_frame,
         angular_frame,
     )
-    zn, az = get_zn_az(-sat_pos_angref, False, plt[0][0], plt[0][1])
+    zn, az = get_zn_az(
+        -sat_pos_angref, in_sez=False, latitude=plt[0][0], longitude=plt[0][1]
+    )
     # phase
     phase = (180.0 / np.pi) * np.arccos(
         (
@@ -183,7 +185,9 @@ def get_moon_datas_xyzs(
     for kernel in kernels:
         k_path = os.path.join(kernels_path, kernel)
         furnsh_safer(k_path)
-    mds = _get_moon_datas_xyzs(xyzs, dts, source_frame, target_frame, angular_frame, intercept_ellipsoid)
+    mds = _get_moon_datas_xyzs(
+        xyzs, dts, source_frame, target_frame, angular_frame, intercept_ellipsoid
+    )
     spice.kclear()
     return mds
 
@@ -239,7 +243,19 @@ def get_moon_datas_llhs(
         k_path = os.path.join(kernels_path, kernel)
         furnsh_safer(k_path)
     ets = spice.str2et(dts)
-    xyzs = [to_rectangular_multiple(llh, body, [et], source_planetographic_frame, source_rectangular_frame) for llh, et in zip(llhs, ets)]
-    mds = _get_moon_datas_xyzs(xyzs, dts, source_rectangular_frame, target_frame, angular_frame, intercept_ellipsoid)
+    xyzs = [
+        to_rectangular_multiple(
+            [llh], body, [et], source_planetographic_frame, source_rectangular_frame
+        )[0]
+        for llh, et in zip(llhs, ets)
+    ]
+    mds = _get_moon_datas_xyzs(
+        xyzs,
+        dts,
+        source_rectangular_frame,
+        target_frame,
+        angular_frame,
+        intercept_ellipsoid,
+    )
     spice.kclear()
     return mds

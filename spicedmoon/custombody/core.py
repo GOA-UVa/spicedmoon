@@ -78,7 +78,9 @@ def get_moon_data_body_ellipsoid(
         "MOON", et_date, observer_frame, "NONE", observer_zenith_name
     )
     rectan_zenith = np.split(state_zenith, 2)[0]
-    zenith, azimuth = get_zn_az(rectan_zenith, in_sez, latitude, longitude)
+    zenith, azimuth = get_zn_az(
+        rectan_zenith, in_sez=in_sez, latitude=latitude, longitude=longitude
+    )
 
     # Calculate moon phase angle
     spoint, _, _ = spice.subpnt(

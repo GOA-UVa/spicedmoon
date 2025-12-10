@@ -4,6 +4,7 @@ import pylunar
 from typing import Tuple
 from datetime import datetime, timezone
 
+
 def _decdeg2dms(dd: float) -> Tuple[int, int, int]:
     """
     Converts decimal degrees to degree, minute, second
@@ -26,9 +27,13 @@ def _decdeg2dms(dd: float) -> Tuple[int, int, int]:
     deg, mnt = divmod(mnt, 60)
     return int(deg), int(mnt), int(sec)
 
+
 def main():
     utc_times = ["2022-01-17 00:00:00", "2022-03-09 14:33:01"]
-    dt_times = [datetime(2022, 1, 17, tzinfo=timezone.utc), datetime(2022, 3, 9, 14, 33, 1, tzinfo=timezone.utc)]
+    dt_times = [
+        datetime(2022, 1, 17, tzinfo=timezone.utc),
+        datetime(2022, 3, 9, 14, 33, 1, tzinfo=timezone.utc),
+    ]
     kernels_path = "kernels"
     extra_kernels = ["EarthStations.tf", "EarthStations.bsp"]
     extra_kernels_path = "extra_kernels"
@@ -44,17 +49,44 @@ def main():
     alt = 705
     frame = "ITRF93"
     correction = True
-    moon_datas = spm.spicedmoon.get_moon_datas(lat, lon, alt, utc_times, kernels_path, correction, frame, False)
-    moon_datas_extra = spm.spicedmoon.get_moon_datas_from_extra_kernels(dt_times, kernels_path,
-        extra_kernels, extra_kernels_path, observer_name, observer_frame, False)
+    moon_datas = spm.get_moon_datas(
+        lat, lon, alt, utc_times, kernels_path, correction, frame, False
+    )
+    moon_datas_extra = spm.get_moon_datas_from_extra_kernels(
+        dt_times,
+        kernels_path,
+        extra_kernels,
+        extra_kernels_path,
+        observer_name,
+        observer_frame,
+        False,
+    )
 
-    md_izana = spm.spicedmoon.get_moon_datas(iz_lat, iz_lon, 2373, utc_times, kernels_path, correction, frame, False)
-    mde_izana = spm.spicedmoon.get_moon_datas_from_extra_kernels(dt_times, kernels_path,
-        extra_kernels, extra_kernels_path, "IZANA", "IZANA_LOCAL_LEVEL", False)
+    md_izana = spm.get_moon_datas(
+        iz_lat, iz_lon, 2373, utc_times, kernels_path, correction, frame, False
+    )
+    mde_izana = spm.get_moon_datas_from_extra_kernels(
+        dt_times,
+        kernels_path,
+        extra_kernels,
+        extra_kernels_path,
+        "IZANA",
+        "IZANA_LOCAL_LEVEL",
+        False,
+    )
 
-    md_oxf = spm.spicedmoon.get_moon_datas(oxf_lat, oxf_lon, oxf_alt, utc_times, kernels_path, correction, frame, False)
-    mde_oxf = spm.spicedmoon.get_moon_datas_from_extra_kernels(dt_times, kernels_path,
-        extra_kernels, extra_kernels_path, "OXFORD", "OXFORD_LOCAL_LEVEL", False)
+    md_oxf = spm.get_moon_datas(
+        oxf_lat, oxf_lon, oxf_alt, utc_times, kernels_path, correction, frame, False
+    )
+    mde_oxf = spm.get_moon_datas_from_extra_kernels(
+        dt_times,
+        kernels_path,
+        extra_kernels,
+        extra_kernels_path,
+        "OXFORD",
+        "OXFORD_LOCAL_LEVEL",
+        False,
+    )
     for i, md in enumerate(moon_datas):
         fecha = utc_times[i]
         mde = moon_datas_extra[i]
@@ -76,13 +108,15 @@ def main():
         print(mdeo.azimuth, mdeo.zenith, mdeo.mpa_deg)
         print(get_pylunar(fecha, oxf_lat, oxf_lon))
 
+
 def get_pylunar(dt_str, lat, lon):
-    dt = datetime.strptime(dt_str, '%Y-%m-%d %H:%M:%S')
+    dt = datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
     mi = pylunar.MoonInfo(_decdeg2dms(lat), _decdeg2dms(lon))
     mi.update(dt)
     az = mi.azimuth()
-    ze = 90-mi.altitude()
+    ze = 90 - mi.altitude()
     return az, ze
+
 
 if __name__ == "__main__":
     main()
