@@ -223,7 +223,7 @@ def get_moon_datas_from_moon(
         id_code,
         observer_frame,
         custom_kernel_path,
-        correct_zenith_azimuth,
+        not correct_zenith_azimuth,
         lat,
         lon,
         False,
