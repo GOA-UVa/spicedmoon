@@ -15,6 +15,35 @@ from .constants import BASIC_KERNELS, MOON_KERNELS
 from .coordinates import to_planetographic_multiple, to_rectangular_multiple
 
 
+def _get_sel_lon_lat_intercept(pos_moonref: np.ndarray):
+    m_eq_rad, m_pol_rad = get_radii_moon(ignore_bodvrd=True)
+    flattening = (m_eq_rad - m_pol_rad) / m_eq_rad
+    x, y, z = pos_moonref
+    # Intersection ray center-body with the moon ellipsoid
+    k = 1.0 / np.sqrt((x * x + y * y) / (m_eq_rad**2) + (z * z) / (m_pol_rad**2))
+    spoint = np.array([k * x, k * y, k * z])
+    sel_lon, sel_lat, _ = spice.recpgr("MOON", spoint, m_eq_rad, flattening)
+    return sel_lon, sel_lat
+
+
+def _get_sel_lon_lat_simple(pos_moonref: np.ndarray):
+    sel_lon = np.arctan2(pos_moonref[1], pos_moonref[0])
+    sel_lat = np.arctan2(
+        pos_moonref[2],
+        np.sqrt(pos_moonref[0] * pos_moonref[0] + pos_moonref[1] * pos_moonref[1]),
+    )
+    return sel_lon, sel_lat
+
+
+def _get_distance_moon(pos_moonref: np.ndarray):
+    distance = np.sqrt(
+        pos_moonref[0] * pos_moonref[0]
+        + pos_moonref[1] * pos_moonref[1]
+        + pos_moonref[2] * pos_moonref[2]
+    )
+    return distance
+
+
 def _get_moon_data_xyzs(
     xyz: Tuple[float, float, float],
     et: float,
@@ -24,7 +53,7 @@ def _get_moon_data_xyzs(
     intercept_ellipsoid: bool,
 ) -> MoonData:
     sun_pos_moonref, lightime = spice.spkpos("SUN", et, target_frame, "NONE", "MOON")
-    sun_pos_satref, lighttime = spice.spkpos("SUN", et, source_frame, "NONE", "EARTH")
+    # sun_pos_satref, lighttime = spice.spkpos("SUN", et, source_frame, "NONE", "EARTH")
     obs_body = "EARTH"
     if "MOON" in source_frame and "MOON" in target_frame:
         obs_body = "MOON"
@@ -37,51 +66,17 @@ def _get_moon_data_xyzs(
     sat_pos_translate[2] = xyz[2] - moon_pos_satref[2]
     sat_pos_moonref = spice.mxv(rotation, sat_pos_translate)
     # selenographic coordinates
-    # sun
-    sel_lon_sun = np.arctan2(sun_pos_moonref[1], sun_pos_moonref[0])
-    sel_lat_sun = np.arctan2(
-        sun_pos_moonref[2],
-        np.sqrt(
-            sun_pos_moonref[0] * sun_pos_moonref[0]
-            + sun_pos_moonref[1] * sun_pos_moonref[1]
-        ),
-    )
-    distance_sun_moon = np.sqrt(
-        sun_pos_moonref[0] * sun_pos_moonref[0]
-        + sun_pos_moonref[1] * sun_pos_moonref[1]
-        + sun_pos_moonref[2] * sun_pos_moonref[2]
-    )
-    dist_sun_moon_au = spice.convrt(distance_sun_moon, "KM", "AU")
-    # sat
     if intercept_ellipsoid:
-        x, y, z = sat_pos_moonref
-        m_eq_rad, m_pol_rad = get_radii_moon(ignore_bodvrd=True)
-        flattening = (m_eq_rad - m_pol_rad) / m_eq_rad
-        # Intersection ray center-observer with the ellipsoid
-        k = 1.0 / np.sqrt(
-            (x * x + y * y) / (m_eq_rad**2) + (z * z) / (m_pol_rad**2)
-        )
-        spoint = np.array([k * x, k * y, k * z])
-        sel_lon_sat, sel_lat_sat, _ = spice.recpgr("MOON", spoint, m_eq_rad, flattening)
-        sel_lon_sat, sel_lat_sat = np.array([sel_lon_sat, sel_lat_sat]) * 180.0 / np.pi
+        sel_lon_sun, sel_lat_sun = _get_sel_lon_lat_intercept(sun_pos_moonref)
+        sel_lon_sat, sel_lat_sat = _get_sel_lon_lat_intercept(sat_pos_moonref)
     else:
-        sel_lon_sat = np.arctan2(sat_pos_moonref[1], sat_pos_moonref[0]) * 180.0 / np.pi
-        sel_lat_sat = (
-            np.arctan2(
-                sat_pos_moonref[2],
-                np.sqrt(
-                    sat_pos_moonref[0] * sat_pos_moonref[0]
-                    + sat_pos_moonref[1] * sat_pos_moonref[1]
-                ),
-            )
-            * 180.0
-            / np.pi
-        )
-    distance_sat_moon = np.sqrt(
-        sat_pos_moonref[0] * sat_pos_moonref[0]
-        + sat_pos_moonref[1] * sat_pos_moonref[1]
-        + sat_pos_moonref[2] * sat_pos_moonref[2]
-    )
+        sel_lon_sun, sel_lat_sun = _get_sel_lon_lat_simple(sun_pos_moonref)
+        sel_lon_sat, sel_lat_sat = _get_sel_lon_lat_simple(sat_pos_moonref)
+    sel_lon_sat, sel_lat_sat = np.array([sel_lon_sat, sel_lat_sat]) * 180.0 / np.pi
+    # distances
+    distance_sun_moon = _get_distance_moon(sun_pos_moonref)
+    dist_sun_moon_au = spice.convrt(distance_sun_moon, "KM", "AU")
+    distance_sat_moon = _get_distance_moon(sat_pos_moonref)
     # zn az
     ang_rotation = spice.pxform(source_frame, angular_frame, et)
     sat_pos_angref = spice.mxv(ang_rotation, sat_pos_translate)
