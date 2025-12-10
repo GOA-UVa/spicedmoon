@@ -12,7 +12,7 @@ def to_rectangular_same_frame(
     body: str,
 ) -> List[List[float]]:
     """Convert planetographic coordinates to rectangular, using the same reference frame.
-    
+
     Parameters
     ----------
     latlonheights: list of tuples of float
@@ -34,7 +34,8 @@ def to_rectangular_same_frame(
     flattening = (eq_rad - pol_rad) / eq_rad
     poss_iaus = []
     for llh in latlonheights:
-        pos_iau = spice.georec(
+        pos_iau = spice.pgrrec(
+            body,
             spice.rpd() * llh[1],
             spice.rpd() * llh[0],
             llh[2],
@@ -51,7 +52,7 @@ def to_planetographic_same_frame(
     body: str,
 ) -> List[List[float]]:
     """Convert rectangular coordinates to planetographic, using the same reference frame.
-    
+
     Parameters
     ----------
     xyz_list: list of tuples of float
@@ -74,7 +75,7 @@ def to_planetographic_same_frame(
     llh_list = []
     for xyz in xyz_list:
         pos_iau = np.array(list(xyz))
-        llh = spice.recgeo(pos_iau, eq_rad, flattening)
+        llh = spice.recpgr(body, pos_iau, eq_rad, flattening)
         llh_list.append(llh)
     for i, llh in enumerate(llh_list):
         lat = llh[1] * spice.dpr()
@@ -112,7 +113,7 @@ def to_rectangular_multiple(
     target_frame: str = "J2000",
 ):
     """Convert planetographic coordinates to rectangular, also changing the reference frame.
-    
+
     Parameters
     ----------
     latlonheights: list of tuples of float
@@ -139,7 +140,8 @@ def to_rectangular_multiple(
     flattening = (eq_rad - pol_rad) / eq_rad
     poss_iaus = []
     for llh, et in zip(latlonheights, ets):
-        pos_iau = spice.georec(
+        pos_iau = spice.pgrrec(
+            body,
             spice.rpd() * llh[1],
             spice.rpd() * llh[0],
             llh[2],
@@ -159,7 +161,7 @@ def to_planetographic_multiple(
     target_frame: str = "IAU_EARTH",
 ) -> List[List[float]]:
     """Convert rectangular coordinates to planetographic, also changing the reference frame.
-    
+
     Parameters
     ----------
     xyz_list: list of tuples of float
@@ -188,7 +190,7 @@ def to_planetographic_multiple(
     for xyz, et in zip(xyz_list, ets):
         pos_iau = np.array(list(xyz))
         pos_iau_proc = _change_frames(pos_iau, source_frame, target_frame, et)
-        llh = spice.recgeo(pos_iau_proc, eq_rad, flattening)
+        llh = spice.recpgr(body, pos_iau_proc, eq_rad, flattening)
         llh_list.append(llh)
     for i, llh in enumerate(llh_list):
         lat = llh[1] * spice.dpr()
