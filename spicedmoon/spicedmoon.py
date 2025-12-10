@@ -11,6 +11,7 @@ It exports the following functions:
     * get_moon_datas_from_moon - Calculates needed MoonData from SPICE toolbox from selenographic coordinates
 """
 from typing import List, Tuple
+import warnings
 
 from .custombody.preexisting import get_moon_datas_from_extra_kernels
 from .geometry import (
@@ -22,6 +23,9 @@ from .heliac import get_sun_moon_datas
 from .types import MoonData, MoonSunData
 
 
+warnings.warn("`spicedmoon.spicedmoon` is deprecated.", DeprecationWarning)
+
+
 def get_moon_datas_xyzs_no_zenith_azimuth(
     xyzs: List[Tuple[float, float, float]],
     dts: List[str],
@@ -29,6 +33,7 @@ def get_moon_datas_xyzs_no_zenith_azimuth(
     source_frame: str = "J2000",
     target_frame: str = "MOON_ME",
 ):
+    warnings.warn("Use directly `spicedmoon.geometry.get_moon_datas_xyzs`", DeprecationWarning)
     get_moon_datas_xyzs(
         xyzs, dts, kernels_path, source_frame, target_frame, "ITRF93", False
     )
