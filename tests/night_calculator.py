@@ -86,6 +86,8 @@ def main():
     alt = 2400
     print_ephem(dts, lat, lon, alt)
     print()
+    print_spicedmoon_obs(dts, lat, lon, alt)
+    print()
     print_spicedmoon_llh(dts, lat, lon, alt)
 
 
