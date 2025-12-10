@@ -49,6 +49,15 @@ def print_spicedmoon_llh(dts_str, lat, lon, alt):
     )
     for md in mds:
         print_result(md.azimuth, md.zenith)
+        print(
+            md.mpa_deg,
+            md.dist_obs_moon,
+            md.dist_sun_moon_km,
+            md.lat_obs,
+            md.lon_obs,
+            math.degrees(md.lat_sun_rad),
+            md.lon_sun_rad,
+        )
 
 
 def print_spicedmoon_obs(dts_str, lat, lon, alt):
@@ -57,6 +66,15 @@ def print_spicedmoon_obs(dts_str, lat, lon, alt):
     )
     for md in mds:
         print_result(md.azimuth, md.zenith)
+        print(
+            md.mpa_deg,
+            md.dist_obs_moon,
+            md.dist_sun_moon_km,
+            md.lat_obs,
+            md.lon_obs,
+            math.degrees(md.lat_sun_rad),
+            md.lon_sun_rad,
+        )
 
 
 def print_ephem(dts_str, lat, lon, alt):
