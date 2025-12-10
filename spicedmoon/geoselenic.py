@@ -89,9 +89,7 @@ def _get_moon_datas_xyzs(
         source_frame,
         angular_frame,
     )
-    colat = get_colat_deg(plt[0][0])
-    lon = plt[0][1] % 180
-    zn, az = get_zn_az(-sat_pos_angref, True, lon, colat)
+    zn, az = get_zn_az(-sat_pos_angref, False, plt[0][0], plt[0][1])
     # phase
     phase = (180.0 / np.pi) * np.arccos(
         (

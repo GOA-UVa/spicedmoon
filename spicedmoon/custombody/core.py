@@ -29,9 +29,9 @@ def get_moon_data_body_ellipsoid(
     observer_name: str = DEFAULT_OBSERVER_NAME,
     observer_frame: str = DEFAULT_OBSERVER_FRAME,
     observer_zenith_name: str = DEFAULT_OBSERVER_ZENITH_NAME,
-    correct_zenith_azimuth: bool = False,
+    in_sez: bool = True,
+    latitude: float = None,
     longitude: float = None,
-    colat: float = None,
     ignore_bodvrd: bool = True,
 ) -> MoonData:
     """
@@ -53,15 +53,13 @@ def get_moon_data_body_ellipsoid(
         Observer frame that will be used in the calculations of the azimuth and zenith.
     observer_zenith_name : str
         The observer used for the zenith and azimuth calculation. By default it's "EARTH".
-    correct_zenith_azimuth : bool
-        In case that it's calculated without using the extra kernels, the coordinates should be
-        corrected rotating them into the correct location.
+    in_sez : bool
+        In case that it's calculated without using the extra kernels, the coordinates won't
+        be on SEZ by default and should be corrected rotating them into the correct location.
+    latitude : float
+        Geographic latitude of the observer point. Used if `in_sez` is True.
     longitude : float
-        Geographic longitude of the observer point. Used if it's calculated without using the
-        extra kernels.
-    colat : float
-        Geographic colatitude of the observer point. Used if it's calculated without using the
-        extra kernels.
+        Geographic longitude of the observer point. Used if `in_sez` is True.
     ignore_bodvrd : bool
         Ignore the SPICE function bodvrd for the calculation of the Moon's radii and use the values
         1738.1 and 1736
@@ -80,7 +78,7 @@ def get_moon_data_body_ellipsoid(
         "MOON", et_date, observer_frame, "NONE", observer_zenith_name
     )
     rectan_zenith = np.split(state_zenith, 2)[0]
-    zenith, azimuth = get_zn_az(rectan_zenith, correct_zenith_azimuth, longitude, colat)
+    zenith, azimuth = get_zn_az(rectan_zenith, in_sez, latitude, longitude)
 
     # Calculate moon phase angle
     spoint, _, _ = spice.subpnt(
@@ -145,9 +143,9 @@ def get_moon_datas_body_ellipsoid_id(
     observer_id: int,
     observer_frame: str,
     custom_kernel_dir: str,
-    correct_zenith_azimuth: bool = False,
-    latitude: float = 0,
-    longitude: float = 0,
+    in_sez: bool = True,
+    latitude: float = None,
+    longitude: float = None,
     earth_as_zenith_observer: bool = False,
     ignore_bodvrd: bool = True,
 ) -> List[MoonData]:
@@ -173,9 +171,9 @@ def get_moon_datas_body_ellipsoid_id(
         Observer frame that will be used in the calculations of the azimuth and zenith.
     custom_kernel_dir: str
         Path where the writable kernel custom.bsp will be stored.
-    correct_zenith_azimuth : bool
-        In case that it's calculated without using the extra kernels, the coordinates should be
-        corrected rotating them into the correct location.
+    in_sez : bool
+        In case that it's calculated without using the extra kernels, the coordinates won't
+        be on SEZ by default and should be corrected rotating them into the correct location.
     latitude : float
         Geographic latitude of the observer point.
     longitude : float
@@ -206,17 +204,15 @@ def get_moon_datas_body_ellipsoid_id(
     else:
         zenith_observer = observer_name
     moon_datas = []
-    colat = get_colat_deg(latitude)
-    lon = longitude % 180
     for utc_time in utc_times:
         new_md = get_moon_data_body_ellipsoid(
             utc_time,
             observer_name,
             observer_frame,
             zenith_observer,
-            correct_zenith_azimuth,
-            lon,
-            colat,
+            in_sez,
+            latitude,
+            longitude,
             ignore_bodvrd,
         )
         moon_datas.append(new_md)

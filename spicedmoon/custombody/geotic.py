@@ -210,7 +210,7 @@ def get_moon_datas(
         id_code,
         observer_frame,
         custom_kernel_path,
-        correct_zenith_azimuth,
+        not correct_zenith_azimuth,
         lat,
         lon,
         earth_as_zenith_observer,
