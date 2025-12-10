@@ -83,9 +83,9 @@ def _get_moon_datas_xyzs(
     ang_rotation = spice.pxform(source_frame, angular_frame, et)
     sat_pos_angref = spice.mxv(ang_rotation, sat_pos_translate)
     plt = to_planetographic_multiple(
-        [xyz * 1000],
+        [xyz],
         obs_body,
-        [spice.et2utc(et, "ISOC", 0)],
+        [et],
         source_frame,
         angular_frame,
     )

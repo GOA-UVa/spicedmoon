@@ -1,7 +1,6 @@
 """
 Common basic functions that help and improve in SPICE usage.
 """
-import os
 import time
 from typing import List, Union, Tuple
 from datetime import datetime, timezone
@@ -24,7 +23,7 @@ def furnsh_safer(k_path: str):
     """
     try:
         spice.furnsh(k_path)
-    except:
+    except Exception:
         time.sleep(2)
         spice.furnsh(k_path)
 
