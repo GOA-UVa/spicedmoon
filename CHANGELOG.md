@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `dt_to_str` throws a runtime warning if any `datetime` is timezone-naive.
 - Direct calculation can now obtain zenith and azimuth values, without using custom intermediate kernel.
 
+### Fixed
+- Phase sign is now determined using the relative selenographic longitudes of the observer and the Sun,
+  replacing the previous method that inferred the sign by comparing the phase angle at a later time.
+
 ### Changed
 - Changed project license from MIT to LGPL.
 - Modernized project structure: consolidated configuration into `pyproject.toml`, added a `CHANGELOG`, and applied current best practices.

@@ -7,6 +7,8 @@ from typing import List, Tuple
 import numpy as np
 import spiceypy as spice
 
+from spicedmoon.angular import get_phase_sign
+
 from .angular import get_zn_az
 
 from .basics import furnsh_safer, get_radii_moon
@@ -107,6 +109,8 @@ def _get_moon_data_xyzs(
         )
         / (distance_sat_moon * distance_sun_moon)
     )
+    s = get_phase_sign(sel_lon_sun, (sel_lon_sat * np.pi / 180))
+    phase = s * phase
     return MoonData(
         dist_sun_moon_au,
         distance_sun_moon,
@@ -135,12 +139,6 @@ def _get_moon_datas_xyzs(
         md = _get_moon_data_xyzs(
             xyz, et, source_frame, target_frame, angular_frame, intercept_ellipsoid
         )
-        et_2 = et + 1
-        md2 = _get_moon_data_xyzs(
-            xyz, et_2, source_frame, target_frame, angular_frame, intercept_ellipsoid
-        )
-        if md2.mpa_deg < md.mpa_deg:
-            md.mpa_deg = -md.mpa_deg
         mds.append(md)
     return mds
 

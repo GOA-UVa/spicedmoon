@@ -7,7 +7,6 @@ import numpy as np
 import spiceypy as spice
 
 
-
 @overload
 def get_zn_az(
     state_pos_zenith: np.ndarray,
@@ -15,6 +14,7 @@ def get_zn_az(
     in_sez: bool = True,
 ) -> Tuple[float, float]:
     ...
+
 
 @overload
 def get_zn_az(
@@ -25,6 +25,7 @@ def get_zn_az(
     longitude: float = None,
 ) -> Tuple[float, float]:
     ...
+
 
 def get_zn_az(
     state_pos_zenith: np.ndarray,
@@ -97,3 +98,27 @@ def get_colat_deg(lat_deg: float) -> float:
         Colatitude associated to `lat`.
     """
     return 90 - (lat_deg % 90)
+
+
+def get_phase_sign(sun_lon_rad: float, obs_lon_rad: float):
+    """
+    Get the sign of a moon phase angle, based on observer's and sun's selenographic longitude
+
+    Parameters
+    ----------
+    sun_lon_rad: float
+        Selenographic longitude of the sun in radians.
+    obs_lon_rad: float
+        Selenographic longitude of the observer in radians.
+
+    Returns
+    -------
+    s: float
+        Sign of the moon phase angle. -1 or 1.
+    """
+    dlon = sun_lon_rad - obs_lon_rad
+    dlon = np.arctan2(np.sin(dlon), np.cos(dlon))
+    s = np.sign(-np.sin(dlon))
+    if s == 0:
+        s = 1.0
+    return s

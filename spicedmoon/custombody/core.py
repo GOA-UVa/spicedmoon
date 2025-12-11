@@ -10,7 +10,7 @@ from typing import List
 import numpy as np
 import spiceypy as spice
 
-from ..angular import get_colat_deg, get_zn_az
+from ..angular import get_zn_az, get_phase_sign
 from ..constants import (
     CUSTOM_KERNEL_NAME,
     DEFAULT_OBSERVER_FRAME,
@@ -90,12 +90,6 @@ def get_moon_data_body_ellipsoid(
     phase = spice.phaseq(et_date, "MOON", "SUN", observer_name, "NONE")
     phase = phase * spice.dpr()
 
-    et_date_2 = et_date + 1
-    phase2 = spice.phaseq(et_date_2, "MOON", "SUN", observer_name, "NONE")
-    phase2 = phase2 * spice.dpr()
-    if phase2 < phase:
-        phase = -phase
-
     # Calculate selenographic coordinates of the observer
     lon_obs, lat_obs, _ = spice.recpgr("MOON", spoint, m_eq_rad, flattening)
     lon_obs = lon_obs * spice.dpr()
@@ -112,6 +106,9 @@ def get_moon_data_body_ellipsoid(
     dist_sun_moon_au = smd.dist_sun_moon_au
 
     lat_obs, lon_obs = limit_planetographic(lat_obs, lon_obs, 90, 180)
+
+    s = get_phase_sign(lon_sun_rad, lon_obs * spice.rpd())
+    phase = s * phase
 
     moon_data = MoonData(
         dist_sun_moon_au,
