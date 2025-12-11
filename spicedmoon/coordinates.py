@@ -202,3 +202,17 @@ def to_planetographic_multiple(
             lon -= 360
         llh_list[i] = (lat, lon, alt)
     return llh_list
+
+
+def limit_planetographic(lat, lon, limit_lat=90, limit_lon=180):
+    if lat > limit_lat:
+        lat = limit_lat + (limit_lat - lat)
+        lon -= limit_lon
+    elif lat < -limit_lat:
+        lat = -limit_lat - (limit_lat + lat)
+        lon += limit_lon
+    while lon > limit_lon:
+        lon -= limit_lon * 2
+    while lon < -limit_lon:
+        lon += limit_lon * 2
+    return lat, lon

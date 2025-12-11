@@ -45,7 +45,7 @@ def print_spicedmoon_earth(dts_str, lat, lon, alt):
 
 def print_spicedmoon_llh(dts_str, lat, lon, alt):
     mds = spm.get_moon_datas_llhs(
-        [(lat, lon, alt) for _ in range(len(dts_str))], dts_str, "./kernels"
+        [(lat, lon, alt / 1000) for _ in range(len(dts_str))], dts_str, "./kernels"
     )
     for md in mds:
         print_result(md.azimuth, md.zenith)

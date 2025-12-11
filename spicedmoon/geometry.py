@@ -12,7 +12,11 @@ from .angular import get_zn_az
 from .basics import furnsh_safer, get_radii_moon
 from .types import MoonData
 from .constants import BASIC_KERNELS, MOON_KERNELS
-from .coordinates import to_planetographic_multiple, to_rectangular_multiple
+from .coordinates import (
+    to_planetographic_multiple,
+    to_rectangular_multiple,
+    limit_planetographic,
+)
 
 
 def _get_sel_lon_lat_intercept(pos_moonref: np.ndarray):
@@ -73,6 +77,10 @@ def _get_moon_data_xyzs(
         sel_lon_sun, sel_lat_sun = _get_sel_lon_lat_simple(sun_pos_moonref)
         sel_lon_sat, sel_lat_sat = _get_sel_lon_lat_simple(sat_pos_moonref)
     sel_lon_sat, sel_lat_sat = np.array([sel_lon_sat, sel_lat_sat]) * 180.0 / np.pi
+    sel_lat_sun, sel_lon_sun = limit_planetographic(
+        sel_lat_sun, sel_lon_sun, np.pi / 2, np.pi
+    )
+    sel_lat_sat, sel_lon_sat = limit_planetographic(sel_lat_sat, sel_lon_sat, 90, 180)
     # distances
     distance_sun_moon = _get_distance_moon(sun_pos_moonref)
     dist_sun_moon_au = spice.convrt(distance_sun_moon, "KM", "AU")

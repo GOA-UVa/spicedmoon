@@ -19,6 +19,7 @@ from ..constants import (
     BASIC_KERNELS,
     MOON_KERNELS,
 )
+from ..coordinates import limit_planetographic
 from ..types import MoonData
 from ..basics import get_radii_moon, furnsh_safer
 from ..heliac import get_sun_moon_data
@@ -110,19 +111,7 @@ def get_moon_data_body_ellipsoid(
     dist_sun_moon_km = smd.dist_sun_moon_km
     dist_sun_moon_au = smd.dist_sun_moon_au
 
-    limit_lat = 90
-    limit_lon = 180
-    if lat_obs > limit_lat:
-        lat_obs = limit_lat + (limit_lat - lat_obs)
-        lon_obs -= limit_lon
-    elif lat_obs < -limit_lat:
-        lat_obs = -limit_lat - (limit_lat + lat_obs)
-        lon_obs += limit_lon
-
-    while lon_obs > limit_lon:
-        lon_obs -= limit_lon * 2
-    while lon_obs < -limit_lon:
-        lon_obs += limit_lon * 2
+    lat_obs, lon_obs = limit_planetographic(lat_obs, lon_obs, 90, 180)
 
     moon_data = MoonData(
         dist_sun_moon_au,
