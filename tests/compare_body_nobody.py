@@ -57,7 +57,7 @@ def get_reldif(a, b, percent=True):
     return rd
 
 
-def plot_reldifs(mds0: List[spm.MoonData], mds1: List[spm.MoonData]):
+def plot_reldifs(mds0: List[spm.MoonData], mds1: List[spm.MoonData], title: str = ""):
     vars = [v for v in mds0[0].__dir__() if not v.startswith("_")]
     mrds = {}
     for v in vars:
@@ -66,11 +66,14 @@ def plot_reldifs(mds0: List[spm.MoonData], mds1: List[spm.MoonData]):
             rd = get_reldif(m0.__dict__[v], m1.__dict__[v], False)
             rds.append(rd)
         mrds[v] = rds
-    fig, axes = plt.subplots(3, 4)
+    fig, axes = plt.subplots(2, 5)
     for i, k in enumerate(mrds):
-        ax = axes[i // 4][i % 4]
+        ax = axes[i // 5][i % 5]
         ax.hist(mrds[k], bins=15, color="skyblue", edgecolor="black")
+        ax.set_axisbelow(True)
+        ax.grid(color="gray", linestyle="dashed")
         ax.set_title(k)
+    fig.suptitle(title)
     plt.show()
 
 
@@ -78,7 +81,7 @@ def main():
     dts = [
         dt.strftime("%Y-%m-%d %H:%M:%S")
         for dt in datetime_range(
-            datetime(2022, 4, 22, 0), datetime(2022, 4, 22, 6), timedelta(minutes=30)
+            datetime(2022, 4, 1), datetime(2022, 4, 28), timedelta(minutes=30)
         )
     ]
     # izana
@@ -88,7 +91,8 @@ def main():
     mds0 = get_spicedmoon_obs(dts, lat, lon, alt)
     mds1 = get_spicedmoon_llh(dts, lat, lon, alt)
     matplotlib.rc("axes.formatter", useoffset=False)
-    plot_reldifs(mds0, mds1)
+    title = "Rel. Diff. Custom Body VS Direct Geometry"
+    plot_reldifs(mds0, mds1, title)
 
 
 if __name__ == "__main__":
