@@ -38,7 +38,6 @@ def get_spicedmoon_llh(dts_str, lat, lon, alt):
         [(lat, lon, alt / 1000) for _ in range(len(dts_str))],
         dts_str,
         "./kernels",
-        source_planetographic_frame="ITRF93",
     )
     return mds
 

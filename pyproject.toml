@@ -5,13 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "spicedmoon"
 dynamic = ["version"]
-description = "Calculation of lunar data using NASA's SPICE toolbox"
+description = "Calculation of lunar data using NASA's SPICE toolkit"
 readme = "README.md"
 license = "LGPL-3.0-only"
 license-files = ["LICENSE"]
 authors = [
     { name = "Javier Gatón Herguedas", email = "gaton@goa.uva.es" },
-    { name = "Juan Carlos Antuña Sánchez", email = "juancarlos.antuna@grasp-sas.com" },
+    { name = "Juan Carlos Antuña Sánchez", email = "juancarlos.antuna@grasp-earth.com" },
     { name = "Stefan Adriaensen", email = "stefan.adriaensen@vito.be" },
     { name = "Ramiro González Catón", email = "ramiro@goa.uva.es" },
     { name = "Roberto Román Diez", email = "robertor@goa.uva.es" },
