@@ -5,7 +5,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/goa-uva/spicedmoon">
-    <img src="https://github.com/GOA-UVa/spicedmoon/blob/master/docs/images/spicedmoon_logo.png?raw=true" alt="spicedmoon logo" height="80" style="height: 80px !important;">
+    <img src="https://raw.githubusercontent.com/GOA-UVa/spicedmoon/master/docs/images/spicedmoon_logo.png" alt="spicedmoon logo" height="80" style="height: 80px !important;">
   </a>
   <h3 align="center">spicedmoon</h3>
   <p align="center">
@@ -299,7 +299,7 @@ mds = get_moon_datas_llhs(
 
 In the following figure we can see that the relative differences are extremely low.
 
-![Relative Differences: Custom-Body VS Direct-Geometry](https://github.com/GOA-UVa/spicedmoon/blob/master/docs/images/custombody_directgeom.png?raw=true)
+![Relative Differences: Custom-Body VS Direct-Geometry](https://raw.githubusercontent.com/GOA-UVa/spicedmoon/master/docs/images/custombody_directgeom.png)
 
 
 ## Structure
@@ -307,7 +307,7 @@ In the following figure we can see that the relative differences are extremely l
 The package is divided in multiple submodules, each dealing with different calculations
 and functionalities. Its structure can be represented in a UML diagram:
 
-![UML diagram](https://github.com/GOA-UVa/spicedmoon/blob/master/docs/images/package_structure.png?raw=true)
+![UML diagram](https://raw.githubusercontent.com/GOA-UVa/spicedmoon/master/docs/images/package_structure.png)
 
 
 ## Authors
