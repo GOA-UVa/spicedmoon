@@ -16,7 +16,8 @@
 
 ## About the project
 
-`spicedmoon` is a Python toolkit built on top of **SPICE** for computing high-precision lunar observational geometry.  
+`spicedmoon` is a Python toolkit built on top of **SPICE** (Acton, 1996), through `spiceypy` (Annex et Al. 2020) for
+computing high-precision lunar observational geometry.  
 It provides selenographic coordinates, Sun-Moon-observer geometry, lunar phase angle and sign, azimuth & zenith,
 and more, from arbitrary observer locations on Earth or the Moon.
 
@@ -321,6 +322,10 @@ and functionalities. Its structure can be represented in a UML diagram:
 ## License
 
 Distributed under the LGPL-v3 License. See [LGPL v3](./LICENSE) for more information.
+
+## References
+- Acton, C. H. (1996). Ancillary data services of NASA's Navigation and Ancillary Information Facility. *Planetary and Space Science, 44*(1), 65-70, https://doi.org/10.1016/0032-0633(95)00107-7
+- Annex, A. M., Pearson, B., Seignovert, B., Carcich, B. T., Eichhorn, H., Mapel, J. A., von Forstner, J. L., Freiherr, McAuliffe, J., Diaz del Rio, J., Berry, K. L., Aye, Klaus-Michael A., Stefko, M. and de Val-Borro, M., Kulumani, S. & Murakami, S. (2020). SpiceyPy: a Pythonic Wrapper for the SPICE Toolkit. *Journal of Open Source Software, 5*(46), 2050, https://doi.org/10.21105/joss.02050
 
 
 [stars-shield]: https://img.shields.io/github/stars/goa-uva/spicedmoon.svg?style=for-the-badge
