@@ -11,9 +11,9 @@ license = "LGPL-3.0-only"
 license-files = ["LICENSE"]
 authors = [
     { name = "Javier Gatón Herguedas", email = "gaton@goa.uva.es" },
-    { name = "Juan Carlos Antuña Sánchez", email = "juancarlos.antuna@grasp-earth.com" },
-    { name = "Stefan Adriaensen", email = "stefan.adriaensen@vito.be" },
     { name = "Ramiro González Catón", email = "ramiro@goa.uva.es" },
+    { name = "Stefan Adriaensen", email = "stefan.adriaensen@vito.be" },
+    { name = "Juan Carlos Antuña Sánchez", email = "juancarlos.antuna@grasp-earth.com" },
     { name = "Roberto Román Diez", email = "robertor@goa.uva.es" },
     { name = "Carlos Toledano Olmeda", email = "toledano@goa.uva.es" },
 ]

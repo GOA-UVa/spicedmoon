@@ -16,8 +16,9 @@
 
 ## About the project
 
-`spicedmoon` is a Python toolkit built on top of **SPICE** (Acton, 1996), through `spiceypy` (Annex et Al. 2020) for
-computing high-precision lunar observational geometry.  
+`spicedmoon` is a Python toolkit built on top of **[SPICE](https://naif.jpl.nasa.gov/naif/)** (Acton, 1996),
+through [`spiceypy`](https://github.com/AndrewAnnex/SpiceyPy) (Annex et Al. 2020) for computing high-precision
+lunar observational geometry.  
 It provides a high-level interface for the retrieval of selenographic coordinates, Sun-Moon-observer geometry,
 lunar phase angle and sign, azimuth & zenith, and more, from arbitrary observer locations on Earth or the Moon.
 
@@ -312,9 +313,9 @@ and functionalities. Its structure can be represented in a UML diagram:
 ## Authors
 
 - [Javier Gatón Herguedas](mailto:gaton@goa.uva.es) - *Maintainer* - [GOA-UVa](https://goa.uva.es)
-- [Juan Carlos Antuña Sánchez](mailto:juancarlos.antuna@grasp-earth.com) - *Contributor* - [GRASP-Earth](https://grasp-earth.com)
-- [Stefan Adriaensen](mailto:stefan.adriaensen@vito.be) - *Contributor* - [VITO](https://vito.be)
 - [Ramiro González Catón](mailto:ramiro@goa.uva.es) - *Contributor* - [GOA-UVa](https://goa.uva.es)
+- [Stefan Adriaensen](mailto:stefan.adriaensen@vito.be) - *Contributor* - [VITO](https://vito.be)
+- [Juan Carlos Antuña Sánchez](mailto:juancarlos.antuna@grasp-earth.com) - *Contributor* - [GRASP-Earth](https://grasp-earth.com)
 - [Roberto Román Diez](mailto:robertor@goa.uva.es) - *Contributor* - [GOA-UVa](https://goa.uva.es)
 - [Carlos Toledano Olmeda](mailto:toledano@goa.uva.es) - *Contributor* - [GOA-UVa](https://goa.uva.es)
 
