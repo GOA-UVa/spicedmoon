@@ -243,7 +243,7 @@ Contains:
 The package is divided in multiple submodules, each dealing with different calculations
 and functionalities. Its structure can be represented in a UML diagram:
 
-[![UML diagram](./docs/images/structure.png)]
+![UML diagram](https://raw.githubusercontent.com/GOA-UVa/spicedmoon/master/docs/images/package_structure.png)
 
 ## Comparing both methods
 
@@ -268,7 +268,7 @@ mds = spm.get_moon_datas_llhs(
 
 In the following figure we can see that the relative differences are extremely low.
 
-[![Relative Differences: Custom-Body VS Direct-Geometry](./docs/images/custombody_directgeom.png)]
+![Relative Differences: Custom-Body VS Direct-Geometry](https://raw.githubusercontent.com/GOA-UVa/spicedmoon/master/docs/images/custombody_directgeom.png)
 
 
 ## Authors

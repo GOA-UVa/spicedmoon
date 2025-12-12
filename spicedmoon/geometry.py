@@ -7,10 +7,7 @@ from typing import List, Tuple
 import numpy as np
 import spiceypy as spice
 
-from spicedmoon.angular import get_phase_sign
-
-from .angular import get_zn_az
-
+from .angular import get_zn_az, get_phase_sign
 from .basics import furnsh_safer, get_radii_moon
 from .types import MoonData
 from .constants import BASIC_KERNELS, MOON_KERNELS
