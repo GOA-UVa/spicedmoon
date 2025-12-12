@@ -100,13 +100,17 @@ Computes lunar geometry from **planetographic coordinates** (latitude, longitude
 from spicedmoon import get_moon_datas_llhs
 
 llhs = [(40.0, -3.5, 0.7)]        # (lat, lon, height_km)
-times = ["2025-01-01 00:00:00"]
+times = ["2025-01-10 00:00:00"]
+kernels_path = "/path/to/kernels"
 
-md = get_moon_datas_llhs(llhs, times, kernels_path="/path/to/kernels")[0]
+md = get_moon_datas_llhs(llhs, times, kernels_path)[0]
 
-print(md.sel_lon_sat, md.sel_lat_sat)
-print(md.az, md.zn)
-print(md.mpa_deg)  # signed phase angle in degrees
+print(md.lon_obs, md.lat_obs) # Observer's selenographic longitude and latitude in degrees
+# 1.4414527418916223 -5.396883424855335
+print(md.azimuth, md.zenith) # Azimuth and zenith of the target in degrees. Az is measured from North towards East.
+# 265.02364998605594 45.359639487448284
+print(md.mpa_deg)  # signed moon phase angle in degrees
+# -51.31044215492803
 ```
 
 #### 1.2 get_moon_datas_xyzs
@@ -120,9 +124,16 @@ Useful when your application already works with Earth-fixed or inertial position
 from spicedmoon import get_moon_datas_xyzs
 
 xyz = [(4510.0, 3480.0, 4060.0)]     # km, in source frame (default: J2000)
-times = ["2025-01-01 00:00:00"]
+times = ["2025-01-10 00:00:00"]
+kernels_path = "/path/to/kernels"
 
-md = get_moon_datas_xyzs(xyz, times, kernels_path="/path/to/kernels")[0]
+md = get_moon_datas_xyzs(xyz, times, kernels_path)[0]
+print(md.lon_obs, md.lat_obs) # Observer's selenographic longitude and latitude in degrees
+# 2.321034649559275 -5.3589043558009095
+print(md.lon_sun_rad, md.lat_sun_rad) # Sun's selenographic longitude and latitude in radians
+# 0.9199491298659819 -0.02542042276583308
+print(md.mpa_deg)  # signed moon phase angle in degrees
+# -50.433894317010626
 ```
 
 
@@ -148,10 +159,17 @@ from spicedmoon import get_moon_datas
 
 lat = 40.0
 lon = -3.5
-alt_m = 800     # altitude in meters here
-times = ["2025-01-01 00:00:00"]
+alt_m = 700     # altitude in meters here
+times = ["2025-01-10 00:00:00"]
+kernels_path="/path/to/kernels"
 
-md = get_moon_datas(lat, lon, alt_m, times, kernels_path="/path/to/kernels")[0]
+md = get_moon_datas(lat, lon, alt_m, times, kernels_path)[0]
+print(md.lon_obs, md.lat_obs) # Observer's selenographic longitude and latitude in degrees
+# 1.4414527418916219 -5.396888519065468
+print(md.azimuth, md.zenith) # Azimuth and zenith of the target in degrees. Az is measured from North towards East.
+# 265.02364998605594 45.359639487448284
+print(md.mpa_deg)  # signed moon phase angle in degrees
+# -51.31044215492803
 ```
 
 #### 2.2 get_moon_datas_from_extra_kernels
@@ -160,16 +178,22 @@ Allows using **pre-existing custom-body kernels** (e.g., Earth station networks)
 
 Useful when you already have `.bsp` and `.tf` files describing station locations.
 
+One must specify the local frame in `observer_frame` to correctly calculate zenith and azimuth.
+This frame must be present in the custom extra kernel files.
+
 ```python
 from spicedmoon import get_moon_datas_from_extra_kernels
 
+times = ["2025-01-10 00:00:00"],
+kernels_path = "/path/to/kernels"
+
 md = get_moon_datas_from_extra_kernels(
-    times=["2025-01-01 00:00:00"],
-    kernels_path="/path/to/kernels"
+    times,
+    kernels_path,
     extra_kernels=["stations.bsp", "stations.tf"],
     extra_kernels_path="/path/to/extra/kernels",
     observer_name="DSS-14",
-    observer_frame="ITRF93",
+    observer_frame="DSS_LOCAL_LEVEL",
 )[0]
 ```
 
@@ -185,13 +209,19 @@ selenographic geometry from that location.
 ```python
 from spicedmoon import get_moon_datas_from_moon
 
-
 lat = 10
 lon = 45
 alt_m = 10000
-times = ["2025-01-01 00:00:00"]
+times = ["2025-01-10 00:00:00"]
+kernels_path = "/path/to/kernels"
 
-md = get_moon_datas_from_moon(lat, lon, alt_m, times, kernels_path="/path/to/kernels")[0]
+md = get_moon_datas_from_moon(lat, lon, alt_m, times, kernels_path)[0]
+print(md.lon_obs, md.lat_obs) # Observer's selenographic longitude and latitude in degrees
+# 44.999999999999986 10.000144376768828
+print(md.azimuth, md.zenith) # Azimuth and zenith of the target in degrees. Az is measured from North towards East.
+# 180.0 19.97647138243788
+print(md.mpa_deg)  # signed moon phase angle in degrees
+# -13.767196747269022
 ```
 
 ### 3. Lunar + Solar Geometry
@@ -206,9 +236,14 @@ Useful when you need only Sun position in respect to the moon.
 ```python
 from spicedmoon import get_sun_moon_datas
 
-times = ["2025-01-01 00:00:00"]
+times = ["2025-01-10 00:00:00"]
+kernels_path = "/path/to/kernels"
 
-data = get_sun_moon_datas(times, kernels_path="/path/to/kernels")[0]
+msd = get_sun_moon_datas(times, kernels_path)[0]
+print(msd.lon_sun_rad, msd.lat_sun_rad) # Sun's selenographic longitude and latitude in radians
+# 0.9199491298659819 -0.025420447501053357
+print(msd.dist_sun_moon_km, msd.dist_sun_moon_au) # Distance between the Sun and the Moon in kilometers and in astronomical units
+# 147349561.92390758 0.9849709846767327
 ```
 
 ### 4. Data Structures
@@ -238,13 +273,6 @@ Contains:
 - `dist_sun_moon_km` : Distance between the Sun and the Moon in km
 - `dist_sun_moon_au` : Distance between the Sun and the Moon in AU
 
-## Structure
-
-The package is divided in multiple submodules, each dealing with different calculations
-and functionalities. Its structure can be represented in a UML diagram:
-
-![UML diagram](https://raw.githubusercontent.com/GOA-UVa/spicedmoon/master/docs/images/package_structure.png)
-
 ## Comparing both methods
 
 Under `tests/` one can see mulitple scripts useful to check result differences between methodologies
@@ -252,14 +280,15 @@ and against results from external library (`ephem`, `pylunar`, etc.).
 
 Custom-Body and Direct-Geometry should the same results if performed as follows:
 ```python
+from spicedmoon import get_moon_datas, get_moon_datas_llhs
 # lat & lon are floats with the geographic coordinates in decimal degrees
 # alt is a float with the altitude over sea-level in meters
 # dts_str is a str with the date&time in a SPICE-compatible format
 # kpath is a str with pointing to the kernels directory path
-mds = spm.get_moon_datas(
+mds = get_moon_datas(
     lat, lon, alt, dts_str, kpath, earth_as_zenith_observer=False
 )
-mds = spm.get_moon_datas_llhs(
+mds = get_moon_datas_llhs(
     [(lat, lon, alt / 1000) for _ in range(len(dts_str))],
     dts_str,
     kpath,
@@ -269,6 +298,14 @@ mds = spm.get_moon_datas_llhs(
 In the following figure we can see that the relative differences are extremely low.
 
 ![Relative Differences: Custom-Body VS Direct-Geometry](https://raw.githubusercontent.com/GOA-UVa/spicedmoon/master/docs/images/custombody_directgeom.png)
+
+
+## Structure
+
+The package is divided in multiple submodules, each dealing with different calculations
+and functionalities. Its structure can be represented in a UML diagram:
+
+![UML diagram](https://raw.githubusercontent.com/GOA-UVa/spicedmoon/master/docs/images/package_structure.png)
 
 
 ## Authors
