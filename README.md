@@ -18,8 +18,8 @@
 
 `spicedmoon` is a Python toolkit built on top of **SPICE** (Acton, 1996), through `spiceypy` (Annex et Al. 2020) for
 computing high-precision lunar observational geometry.  
-It provides selenographic coordinates, Sun-Moon-observer geometry, lunar phase angle and sign, azimuth & zenith,
-and more, from arbitrary observer locations on Earth or the Moon.
+It provides a high-level interface for the retrieval of selenographic coordinates, Sun-Moon-observer geometry,
+lunar phase angle and sign, azimuth & zenith, and more, from arbitrary observer locations on Earth or the Moon.
 
 The library offers **two complementary computation methodologies**:
 

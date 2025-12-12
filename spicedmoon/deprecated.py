@@ -1,14 +1,7 @@
-"""Spiced Moon
-
-Calculation of lunar data using NASA's SPICE toolbox.
-
-It exports the following functions:
-
-    * get_moon_datas - Calculates needed MoonData from SPICE toolbox
-    * get_moon_datas_from_extra_kernels - Calculates needed MoonData from SPICE toolbox
-        and using data from extra kernels for the observer body
-    * get_sun_moon_datas - Calculates solar selenographic coordinates.
-    * get_moon_datas_from_moon - Calculates needed MoonData from SPICE toolbox from selenographic coordinates
+"""
+Implementation of the now deprecated `spicedmoon.spicedmoon` submodule.
+It will be eventually removed, but for now it preserves 1.0.13 functionalities that
+should remain temporarily.
 """
 from typing import List, Tuple
 import warnings
