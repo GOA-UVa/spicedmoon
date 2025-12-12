@@ -23,7 +23,7 @@ from .heliac import get_sun_moon_datas
 from .types import MoonData, MoonSunData
 
 
-warnings.warn("`spicedmoon.spicedmoon` is deprecated and will be removed soon.", FutureWarning, stacklevel=2)
+warnings.warn("`spicedmoon.spicedmoon` is deprecated and will be removed soon. Use directly `spicedmoon`.", FutureWarning, stacklevel=3)
 
 def get_moon_datas_xyzs_no_zenith_azimuth(
     xyzs: List[Tuple[float, float, float]],
@@ -32,7 +32,7 @@ def get_moon_datas_xyzs_no_zenith_azimuth(
     source_frame: str = "J2000",
     target_frame: str = "MOON_ME",
 ):
-    warnings.warn("Use directly `spicedmoon.geometry.get_moon_datas_xyzs`", FutureWarning, stacklevel=2)
+    warnings.warn("`spicedmoon.spicedmoon` is deprecated. Use directly `spicedmoon.geometry.get_moon_datas_xyzs`.", FutureWarning, stacklevel=2)
     get_moon_datas_xyzs(
         xyzs, dts, kernels_path, source_frame, target_frame, "ITRF93", False
     )
